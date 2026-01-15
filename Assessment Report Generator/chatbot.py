@@ -111,10 +111,11 @@ def prepare_ai_payload(raw: Dict[str, Any]) -> Dict[str, Any]:
 # AI analysis function
 # -----------------------------
 
-def run_ai_analysis(clean_payload: Dict[str, Any]) -> str:
+def run_ai_analysis(clean_payload: Dict[str, Any]) -> Dict[str, Any]:
     response = client.chat.completions.create(
         model="gpt-oss-120b",
         temperature=0.2,
+        response_format={"type": "json_object"},
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {
@@ -124,7 +125,16 @@ def run_ai_analysis(clean_payload: Dict[str, Any]) -> str:
         ]
     )
 
-    return response.choices[0].message.content.strip()
+    raw_content = response.choices[0].message.content.strip()
+    
+    # Remove markdown code blocks if present
+    if raw_content.startswith("```json"):
+        raw_content = raw_content.replace("```json", "").replace("```", "").strip()
+    elif raw_content.startswith("```"):
+        raw_content = raw_content.replace("```", "").strip()
+    
+    # Parse the JSON
+    return json.loads(raw_content)
 
 # -----------------------------
 # End-to-end helper

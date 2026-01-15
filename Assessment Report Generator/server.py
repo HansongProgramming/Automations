@@ -1,122 +1,141 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import Optional
-import uvicorn
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+import tempfile
+import os
 import json
 
-# Import your existing modules
+# Existing triage imports
+from pdf_utils import pdf_to_pngs
+from openai_client import describe_images
+from config import START_KEYWORD, STOP_KEYWORD
+
+# Credit report analyzer imports
 from app import analyze_credit_report
 from chatbot import analyse_credit_report, prepare_ai_payload
 
-app = FastAPI(
-    title="Credit Report Analyzer API",
-    description="Analyzes credit reports and returns risk indicators with AI analysis",
-    version="1.0.0"
-)
+app = Flask(__name__)
+CORS(app)  # Enable CORS for n8n compatibility
 
-# Add CORS middleware for n8n compatibility
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# ============================================
+# EXISTING TRIAGE SERVICE (UNTOUCHED)
+# ============================================
 
-
-class CreditReportRequest(BaseModel):
-    """Request model for credit report analysis"""
-    url: Optional[str] = None
-    html: Optional[str] = None
-    debug: Optional[bool] = False  # Add debug flag
+@app.route("/triage", methods=["POST"])
+def triage():
+    """Original PDF triage service - unchanged"""
+    if "file" not in request.files:
+        return jsonify({"error": "No file provided"}), 400
     
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "url": "https://api.boshhhfintech.com/File/CreditReport/95d1ce7e-2c3c-49d5-a303-6a4727f91005?Auth=..."
-            }
-        }
+    pdf_file = request.files["file"]
+    if not pdf_file.filename.lower().endswith(".pdf"):
+        return jsonify({"error": "File must be a PDF"}), 400
+    
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+        pdf_file.save(tmp.name)
+        tmp_path = tmp.name
+    
+    try:
+        images = pdf_to_pngs(
+            tmp_path,
+            START_KEYWORD,
+            STOP_KEYWORD
+        )
+        ai_text = describe_images(images)
+        return jsonify({
+            "status": "ok",
+            "result": ai_text
+        })
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+    finally:
+        os.unlink(tmp_path)
 
+# ============================================
+# NEW CREDIT REPORT ANALYZER SERVICE
+# ============================================
 
-@app.get("/")
-async def root():
+@app.route("/", methods=["GET"])
+def root():
     """Health check endpoint"""
-    return {
+    return jsonify({
         "status": "online",
-        "service": "Credit Report Analyzer API",
+        "services": [
+            "/triage - PDF triage service",
+            "/analyze - Credit report analyzer"
+        ],
         "version": "1.0.0"
-    }
+    })
 
 
-@app.post("/analyze")
-async def analyze_endpoint(request: CreditReportRequest):
+@app.route("/analyze", methods=["POST"])
+def analyze_endpoint():
     """
     Analyze a credit report and generate AI analysis.
-    Returns complete analysis in a single JSON response.
     
-    - **url**: URL to fetch the credit report HTML from
-    - **html**: Raw HTML string of the credit report
-    - **debug**: Set to true to see the payload sent to AI
-    
-    Note: Provide either url OR html, not both.
+    Expected JSON body:
+    {
+        "url": "https://...",  // OR
+        "html": "<html>...",
+        "debug": false  // optional
+    }
     """
     try:
-        # Validate that either url or html is provided
-        if not request.url and not request.html:
-            raise HTTPException(
-                status_code=400,
-                detail="Either 'url' or 'html' must be provided"
-            )
+        data = request.get_json()
         
-        if request.url and request.html:
-            raise HTTPException(
-                status_code=400,
-                detail="Provide either 'url' or 'html', not both"
-            )
+        if not data:
+            return jsonify({"error": "Request body must be JSON"}), 400
+        
+        url = data.get("url")
+        html = data.get("html")
+        debug = data.get("debug", False)
+        
+        # Validate that either url or html is provided
+        if not url and not html:
+            return jsonify({
+                "error": "Either 'url' or 'html' must be provided"
+            }), 400
+        
+        if url and html:
+            return jsonify({
+                "error": "Provide either 'url' or 'html', not both"
+            }), 400
         
         # Step 1: Analyze credit report
-        url_or_html = request.url if request.url else request.html
+        url_or_html = url if url else html
         credit_analysis = analyze_credit_report(url_or_html)
         
         # Debug mode: show what's being sent to AI
-        if request.debug:
+        if debug:
             ai_payload = prepare_ai_payload(credit_analysis)
-            return {
+            return jsonify({
                 "credit_analysis": credit_analysis,
                 "ai_payload_preview": ai_payload,
                 "ai_analysis": "Debug mode - AI not called"
-            }
+            })
         
         # Step 2: Send to chatbot for AI analysis
         ai_analysis = analyse_credit_report(credit_analysis)
         
         # Return combined in single JSON
-        return {
+        return jsonify({
             "credit_analysis": credit_analysis,
             "ai_analysis": ai_analysis
-        }
+        })
         
-    except HTTPException:
-        raise
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Analysis failed: {str(e)}"
-        )
+        return jsonify({
+            "error": f"Analysis failed: {str(e)}"
+        }), 500
 
 
-@app.get("/health")
-async def health_check():
+@app.route("/health", methods=["GET"])
+def health_check():
     """Health check endpoint for monitoring"""
-    return {"status": "healthy"}
+    return jsonify({"status": "healthy"})
 
 
 if __name__ == "__main__":
-    # Run the server
-    uvicorn.run(
-        app,
-        host="0.0.0.0",
-        port=8000,
-        log_level="info"
-    )
+    app.run(host="0.0.0.0", port=8000, debug=True)

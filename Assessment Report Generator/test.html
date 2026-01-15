@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Affordability Assessment – Systemize</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --navy: #0f172a;
+      --white: #ffffff;
+      --charcoal: #1f2933;
+      --slate: #6b7280;
+
+      --green: #059669;
+      --amber: #d97706;
+      --red: #e11d48;
+
+      --green-soft: #ecfdf5;
+      --gray-soft: #f3f4f6;
+      --red-soft: #fff1f2;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--navy);
+      font-family: Inter, system-ui, sans-serif;
+      color: var(--charcoal);
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1024px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.15);
+      color: #fff;
+    }
+
+    header img {
+      width: 48px;
+      height: 48px;
+    }
+
+    header h1 {
+      font-family: Manrope, sans-serif;
+      font-size: 28px;
+      margin: 0;
+      font-weight: 700;
+    }
+
+    header p {
+      margin: 4px 0 0;
+      color: #cbd5e1;
+      font-size: 14px;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--white);
+      border-radius: 12px;
+      padding: 24px;
+      margin-top: 24px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    .card-header {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+      color: var(--slate);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Case Info */
+    .case-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 24px;
+    }
+
+    .label {
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--slate);
+      margin-bottom: 4px;
+    }
+
+    .value {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .mono {
+      font-family: "JetBrains Mono", monospace;
+    }
+
+    /* Traffic Badge */
+    .badge {
+      margin-top: 24px;
+      height: 80px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: Manrope, sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .badge.green { background: var(--green); }
+    .badge.amber { background: var(--amber); }
+    .badge.red { background: var(--red); }
+
+    /* Indicators */
+    .indicator {
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+      border: 1px solid;
+    }
+
+    .indicator.found {
+      background: var(--red-soft);
+      border-color: var(--red);
+    }
+
+    .indicator.not-found {
+      background: var(--gray-soft);
+      border-color: #9ca3af;
+    }
+
+    .indicator-title {
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .dot.red { background: var(--red); }
+    .dot.gray { background: #9ca3af; }
+
+    .indicator p {
+      margin: 0;
+      font-size: 14px;
+      color: #374151;
+    }
+
+    /* Lenders */
+    .lenders.in-scope {
+      border-left: 6px solid var(--green);
+    }
+
+    .lenders.out-scope {
+      border-left: 6px solid #9ca3af;
+    }
+
+    .lenders .card-header {
+      background: rgba(0,0,0,0.03);
+      padding: 12px;
+      border-radius: 8px;
+    }
+
+    .lender {
+      margin-bottom: 16px;
+    }
+
+    .lender strong {
+      display: block;
+      font-weight: 600;
+    }
+
+    .lender span {
+      font-size: 13px;
+      color: var(--slate);
+    }
+
+    /* Footer */
+    footer {
+      margin-top: 32px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255,255,255,0.15);
+      text-align: center;
+      color: #cbd5e1;
+      font-size: 13px;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      header h1 {
+        font-size: 24px;
+      }
+
+      .container {
+        padding: 16px;
+      }
+    }
+
+    /* Print */
+    @media print {
+      body {
+        background: #fff;
+      }
+
+      .badge {
+        display: none;
+      }
+
+      .card {
+        box-shadow: none;
+        page-break-inside: avoid;
+      }
+
+      footer {
+        color: #000;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <img src="https://dummyimage.com/48x48/2563eb/ffffff&text=S" alt="Systemize Logo">
+      <div>
+        <h1>Affordability Assessment</h1>
+        <p>Regulatory credit file review for legal decision-making</p>
+      </div>
+    </header>
+
+    <section class="card">
+      <div class="card-header">Case Information</div>
+      <div class="case-grid">
+        <div>
+          <div class="label">Case ID</div>
+          <div class="value mono">RD-2026-0190</div>
+        </div>
+        <div>
+          <div class="label">Applicant</div>
+          <div class="value">Johnathan Smith</div>
+        </div>
+        <div>
+          <div class="label">Generated</div>
+          <div class="value mono">2026-01-15</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="badge green">STRONG CASE</div>
+
+    <section class="card">
+      <div class="card-header">Credit File Indicators</div>
+
+      <div class="indicator found">
+        <div class="indicator-title">
+          <span class="dot red"></span>
+          Persistent Arrears
+        </div>
+        <p>Repeated late payments observed across multiple credit agreements.</p>
+      </div>
+
+      <div class="indicator not-found">
+        <div class="indicator-title">
+          <span class="dot gray"></span>
+          Recent CCJs
+        </div>
+        <p>No county court judgments recorded within the review period.</p>
+      </div>
+
+      <!-- Repeat remaining indicators as needed -->
+    </section>
+
+    <section class="card lenders in-scope">
+      <div class="card-header">✔ In-Scope Lenders</div>
+
+      <div class="lender">
+        <strong>ABC Finance</strong>
+        <span>Credit Card</span>
+        <p>Lending continued despite clear evidence of financial distress.</p>
+      </div>
+    </section>
+
+    <section class="card lenders out-scope">
+      <div class="card-header">✖ Out-of-Scope Lenders</div>
+
+      <div class="lender">
+        <strong>Lowell Portfolio</strong>
+        <span>Debt Purchaser</span>
+        <p>Debt was acquired post-default. No original lending decision involved.</p>
+      </div>
+    </section>
+
+    <footer>
+      Irresponsible Lending Analysis · Systemize · Generated 2026-01-15
+    </footer>
+  </div>
+</body>
+</html>
