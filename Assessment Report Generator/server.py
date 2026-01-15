@@ -5,7 +5,7 @@ from typing import Optional
 import uvicorn
 
 # Import your existing modules
-from credit_report_analyzer import analyze_credit_report
+from app import analyze_credit_report
 from chatbot import analyse_credit_report
 
 app = FastAPI(
