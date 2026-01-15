@@ -22,42 +22,52 @@ class CreditReportAnalyzer:
     def parse_ccj_data(self) -> List[Dict[str, Any]]:
         """Extract County Court Judgement (CCJ) data"""
         ccjs = []
+        content = self.soup.get_text()
         
-        # Find all CCJ sections in tables
-        tables = self.soup.find_all('table')
+        # Find the Public Records section
+        ccj_section_match = re.search(r'Public Records at Supplied Address 1(.*?)(?:Public Records at Linked Address|---)', content, re.DOTALL)
         
-        for table in tables:
-            rows = table.find_all('tr')
+        if not ccj_section_match:
+            return ccjs
+        
+        ccj_section = ccj_section_match.group(1)
+        
+        # Split by "County Court Judgement (CCJ)" headers
+        ccj_blocks = re.split(r'County Court Judgement \(CCJ\)', ccj_section)
+        
+        for block in ccj_blocks[1:]:  # Skip first split (before first CCJ)
             ccj_data = {}
             
-            for row in rows:
-                cells = row.find_all('td')
-                if len(cells) == 2:
-                    key = cells[0].get_text(strip=True)
-                    value = cells[1].get_text(strip=True)
-                    
-                    if 'Court Name' in key:
-                        ccj_data['court_name'] = value
-                    elif 'Case Number' in key and 'Old' not in key:
-                        ccj_data['case_number'] = value
-                    elif 'Case Type' in key:
-                        ccj_data['case_type'] = value
-                    elif 'Amount' in key and 'GBP' in value:
-                        try:
-                            ccj_data['amount'] = int(re.sub(r'[^\d]', '', value))
-                        except:
-                            ccj_data['amount'] = 0
+            # Extract date (may be on same line as CCJ header or in data)
+            date_match = re.search(r'(\d{4}-\d{2}-\d{2})', block[:50])  # Check first 50 chars
+            if date_match:
+                ccj_data['date'] = date_match.group(1)
             
-            # Check if this table had CCJ data
+            # Extract court name
+            court_match = re.search(r'Court Name\s*([A-Z\s]+?)(?:Case Number|$)', block)
+            if court_match:
+                ccj_data['court_name'] = court_match.group(1).strip()
+            
+            # Extract case number (but not "Old Case Number")
+            case_match = re.search(r'Case Number\s*([A-Z0-9]+)', block)
+            if case_match:
+                ccj_data['case_number'] = case_match.group(1).strip()
+            
+            # Extract case type
+            type_match = re.search(r'Case Type\s*([A-Z]+)', block)
+            if type_match:
+                ccj_data['case_type'] = type_match.group(1).strip()
+            
+            # Extract amount
+            amount_match = re.search(r'Amount\s*(\d+)\s*GBP', block)
+            if amount_match:
+                try:
+                    ccj_data['amount'] = int(amount_match.group(1))
+                except:
+                    ccj_data['amount'] = 0
+            
+            # Only add if we found a case number
             if ccj_data.get('case_number'):
-                # Try to find date in the row before the table
-                date_match = None
-                prev = table.find_previous(['p', 'td'])
-                if prev:
-                    date_text = prev.get_text(strip=True)
-                    date_match = re.search(r'(\d{4}-\d{2}-\d{2})', date_text)
-                
-                ccj_data['date'] = date_match.group(1) if date_match else None
                 ccjs.append(ccj_data)
         
         return ccjs
