@@ -7,7 +7,12 @@ from typing import Dict, Any, List
 # -----------------------------
 
 client = OpenAI(
-    api_key="YOUR_OPENAI_API_KEY"
+    api_key="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",
+    base_url="https://openrouter.ai/api/v1",
+    default_headers={
+        "HTTP-Referer": "https://your-domain-or-app-name",
+        "X-Title": "Credit Analysis Bot"
+    }
 )
 
 # -----------------------------
@@ -104,7 +109,7 @@ def prepare_ai_payload(raw: Dict[str, Any]) -> Dict[str, Any]:
 
 def run_ai_analysis(clean_payload: Dict[str, Any]) -> str:
     response = client.chat.completions.create(
-        model="gpt-4.1-mini",
+        model="gpt-oss-120b",
         temperature=0.2,
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},

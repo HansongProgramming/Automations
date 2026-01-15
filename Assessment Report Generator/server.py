@@ -50,48 +50,8 @@ async def root():
 @app.post("/analyze")
 async def analyze_endpoint(request: CreditReportRequest):
     """
-    Analyze a credit report from URL or HTML string.
-    Returns structured JSON analysis only.
-    
-    - **url**: URL to fetch the credit report HTML from
-    - **html**: Raw HTML string of the credit report
-    
-    Note: Provide either url OR html, not both.
-    """
-    try:
-        # Validate that either url or html is provided
-        if not request.url and not request.html:
-            raise HTTPException(
-                status_code=400,
-                detail="Either 'url' or 'html' must be provided"
-            )
-        
-        if request.url and request.html:
-            raise HTTPException(
-                status_code=400,
-                detail="Provide either 'url' or 'html', not both"
-            )
-        
-        # Use your existing function
-        url_or_html = request.url if request.url else request.html
-        result = analyze_credit_report(url_or_html)
-        
-        return result
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Analysis failed: {str(e)}"
-        )
-
-
-@app.post("/analyze-with-ai")
-async def analyze_with_ai_endpoint(request: CreditReportRequest):
-    """
     Analyze a credit report and generate AI analysis.
-    Returns both structured JSON and AI-generated analysis text.
+    Returns complete analysis in a single JSON response.
     
     - **url**: URL to fetch the credit report HTML from
     - **html**: Raw HTML string of the credit report
@@ -119,7 +79,7 @@ async def analyze_with_ai_endpoint(request: CreditReportRequest):
         # Step 2: Send to chatbot for AI analysis
         ai_analysis = analyse_credit_report(credit_analysis)
         
-        # Return both
+        # Return combined in single JSON
         return {
             "credit_analysis": credit_analysis,
             "ai_analysis": ai_analysis
@@ -130,7 +90,7 @@ async def analyze_with_ai_endpoint(request: CreditReportRequest):
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=f"Analysis with AI failed: {str(e)}"
+            detail=f"Analysis failed: {str(e)}"
         )
 
 
