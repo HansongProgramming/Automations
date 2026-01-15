@@ -41,25 +41,26 @@ Rules:
 - Do not speculate
 - Use clear, professional legal reasoning
 
-Output format:
+Output format must be in json not markdown:
+{
+  "in_scope": [
+    {
+      "name": "Capital One (Europe) PLC",
+      "entity_type": "Credit Card",
+      "reason_title": "Lending during adverse credit period",
+      "reason_summary": "Extended credit while active defaults were visible on the credit file, indicating financial distress at the point of lending and a failure to conduct adequate affordability checks."
+    }
+  ],
+  "out_of_scope": [
+    {
+      "name": "Lowell Portfolio I Ltd",
+      "entity_type": "Debt Purchaser",
+      "reason_title": "Not original lender",
+      "reason_summary": "Debt purchaser and collection agency. Did not originate the credit agreement and therefore cannot be pursued for irresponsible lending or affordability failures."
+    }
+  ]
+}
 
-In-Scope: Potential Claims
-<short explanation>
-
-<Lender Name>
-
-<Account Type>
-<reasoned analysis>
-
----
-
-Out-of-Scope: Not Defendants
-<short explanation>
-
-<Entity Name>
-
-<Entity Type>
-<reason excluded>
 """
 
 # -----------------------------

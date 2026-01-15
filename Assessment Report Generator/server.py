@@ -3,10 +3,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
 import uvicorn
+import json
 
 # Import your existing modules
 from app import analyze_credit_report
-from chatbot import analyse_credit_report
+from chatbot import analyse_credit_report, prepare_ai_payload
 
 app = FastAPI(
     title="Credit Report Analyzer API",
@@ -28,6 +29,7 @@ class CreditReportRequest(BaseModel):
     """Request model for credit report analysis"""
     url: Optional[str] = None
     html: Optional[str] = None
+    debug: Optional[bool] = False  # Add debug flag
     
     class Config:
         json_schema_extra = {
@@ -55,6 +57,7 @@ async def analyze_endpoint(request: CreditReportRequest):
     
     - **url**: URL to fetch the credit report HTML from
     - **html**: Raw HTML string of the credit report
+    - **debug**: Set to true to see the payload sent to AI
     
     Note: Provide either url OR html, not both.
     """
@@ -75,6 +78,15 @@ async def analyze_endpoint(request: CreditReportRequest):
         # Step 1: Analyze credit report
         url_or_html = request.url if request.url else request.html
         credit_analysis = analyze_credit_report(url_or_html)
+        
+        # Debug mode: show what's being sent to AI
+        if request.debug:
+            ai_payload = prepare_ai_payload(credit_analysis)
+            return {
+                "credit_analysis": credit_analysis,
+                "ai_payload_preview": ai_payload,
+                "ai_analysis": "Debug mode - AI not called"
+            }
         
         # Step 2: Send to chatbot for AI analysis
         ai_analysis = analyse_credit_report(credit_analysis)
