@@ -1,13 +1,16 @@
 import json
 from openai import OpenAI
 from typing import Dict, Any, List
+from dotenv import load_dotenv
+load_dotenv()  # loads .env into environment
+import os
 
 # -----------------------------
 # OpenAI client
 # -----------------------------
 
 client = OpenAI(
-    api_key="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",
+    api_key=os.getenv("OPENROUTER_API_KEY"),
     base_url="https://openrouter.ai/api/v1",
     default_headers={
         "HTTP-Referer": "https://your-domain-or-app-name",
