@@ -7,6 +7,7 @@
     <title>Affordability Triage Report</title>
     <style>
         @import "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap";
+
         * {
             margin: 0;
             padding: 0;
@@ -143,6 +144,7 @@
             font-size: 0.875rem;
             color: #d1d5db;
             margin-bottom: 1rem;
+            /* line-height: 80%; */
         }
 
         .grid {
@@ -164,6 +166,7 @@
             font-weight: 600;
             text-transform: uppercase;
             margin-bottom: 0.25rem;
+            line-height: 30%;
         }
 
         .info-value {
@@ -281,7 +284,8 @@
     <div class="header no-print">
         <div class="header-content">
             <div class="logo-section">
-                <img src="https://raw.githubusercontent.com/HansongProgramming/Automations/main/Assessment%20Report%20Generator/Main%20Logo.png" alt="Company Logo" class="logo">
+                <img src="https://raw.githubusercontent.com/HansongProgramming/Automations/main/Assessment%20Report%20Generator/Main%20Logo.png"
+                    alt="Company Logo" class="logo">
                 <div class="header-title">
                     <h1>Affordability Assessment</h1>
                     <p class="subtitle">Systemize Affordability Analysis</p>
@@ -299,29 +303,26 @@
         <div class="card">
             <div class="card-header">
                 <h2>Case Information</h2>
-                <p>{{ $json.credit_analysis.client_info.name }}</p>
+                <p>RD-2026-0190 | {{ $json.credit_analysis.client_info.name }}</p>
             </div>
             <div class="card-body">
                 <p class="card-description">Summary of the lending transaction and key dates for reference.</p>
                 <div class="grid">
                     <div class="info-box">
-                        <p class="info-label">Applicant Name</p>
+                        <p class="info-label">Case ID</p>
+                        <p class="info-value">RD-2026-0190</p>
+                    </div>
+                    <div class="info-box">
+                        <p class="info-label">Applicant</p>
                         <p class="info-value">{{ $json.credit_analysis.client_info.name }}</p>
-                    </div>
-                    <div class="info-box">
-                        <p class="info-label">Address</p>
-                        <p class="info-value">{{ $json.credit_analysis.client_info.address }}</p>
-                    </div>
-                    <div class="info-box">
-                        <p class="info-label">Total Points</p>
-                        <p class="info-value">{{ $json.credit_analysis.total_points }}</p>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="status-badge status-strong no-print">
-            {{ $json.credit_analysis.traffic_light }} CASE
+            {{ { 'green': 'STRONG', 'orange': 'MEDIUM', 'red': 'WEAK'
+            }[$json.credit_analysis.traffic_light.toLowerCase()] || $json.credit_analysis.traffic_light }} CASE
         </div>
 
         <div class="card">
@@ -331,75 +332,111 @@
             </div>
             <div class="card-body">
                 <div class="indicator-list">
-                    <div class="indicator {{ $json.credit_analysis.indicators.active_ccj.flagged === true ? 'indicator-red' : 'indicator-gray' }}">
-                        <div class="indicator-dot {{ $json.credit_analysis.indicators.active_ccj.flagged === true ? 'dot-red' : 'dot-gray' }}"></div>
+                    <div
+                        class="indicator {{ $json.credit_analysis.indicators.active_ccj.flagged === true ? 'indicator-red' : 'indicator-gray' }}">
+                        <div
+                            class="indicator-dot {{ $json.credit_analysis.indicators.active_ccj.flagged === true ? 'dot-red' : 'dot-gray' }}">
+                        </div>
                         <div class="indicator-content">
                             <h3>Active CCJ</h3>
-                            <p>Court judgment against applicant is active and unresolved. Strong indicator of inability to meet financial obligations.</p>
+                            <p>Court judgment against applicant is active and unresolved. Strong indicator of inability
+                                to meet financial obligations.</p>
                         </div>
                     </div>
 
-                    <div class="indicator {{ $json.credit_analysis.indicators.multiple_ccjs.flagged === true ? 'indicator-red' : 'indicator-gray' }}">
-                        <div class="indicator-dot {{ $json.credit_analysis.indicators.multiple_ccjs.flagged === true ? 'dot-red' : 'dot-gray' }}"></div>
+                    <div
+                        class="indicator {{ $json.credit_analysis.indicators.multiple_ccjs.flagged === true ? 'indicator-red' : 'indicator-gray' }}">
+                        <div
+                            class="indicator-dot {{ $json.credit_analysis.indicators.multiple_ccjs.flagged === true ? 'dot-red' : 'dot-gray' }}">
+                        </div>
                         <div class="indicator-content">
                             <h3>Multiple CCJs</h3>
-                            <p>Multiple court judgments show pattern of legal debt enforcement. Demonstrates persistent inability to manage credit responsibly.</p>
+                            <p>Multiple court judgments show pattern of legal debt enforcement. Demonstrates persistent
+                                inability to manage credit responsibly.</p>
                         </div>
                     </div>
 
-                    <div class="indicator {{ $json.credit_analysis.indicators.active_default.flagged === true ? 'indicator-red' : 'indicator-gray' }}">
-                        <div class="indicator-dot {{ $json.credit_analysis.indicators.active_default.flagged === true ? 'dot-red' : 'dot-gray' }}"></div>
+                    <div
+                        class="indicator {{ $json.credit_analysis.indicators.active_default.flagged === true ? 'indicator-red' : 'indicator-gray' }}">
+                        <div
+                            class="indicator-dot {{ $json.credit_analysis.indicators.active_default.flagged === true ? 'dot-red' : 'dot-gray' }}">
+                        </div>
                         <div class="indicator-content">
                             <h3>Active Default</h3>
-                            <p>Current unsettled default on credit account. Applicant is actively failing to meet payment obligations.</p>
+                            <p>Current unsettled default on credit account. Applicant is actively failing to meet
+                                payment obligations.</p>
                         </div>
                     </div>
 
-                    <div class="indicator {{ $json.credit_analysis.indicators.debt_collection.flagged === true ? 'indicator-red' : 'indicator-gray' }}">
-                        <div class="indicator-dot {{ $json.credit_analysis.indicators.debt_collection.flagged === true ? 'dot-red' : 'dot-gray' }}"></div>
+                    <div
+                        class="indicator {{ $json.credit_analysis.indicators.debt_collection.flagged === true ? 'indicator-red' : 'indicator-gray' }}">
+                        <div
+                            class="indicator-dot {{ $json.credit_analysis.indicators.debt_collection.flagged === true ? 'dot-red' : 'dot-gray' }}">
+                        </div>
                         <div class="indicator-content">
                             <h3>Debt Collection Account</h3>
-                            <p>Account has been passed to debt collection agency (Lowell, Cabot, PRA). Indicates serious payment failure and debt enforcement action.</p>
+                            <p>Account has been passed to debt collection agency (Lowell, Cabot, PRA). Indicates serious
+                                payment failure and debt enforcement action.</p>
                         </div>
                     </div>
 
-                    <div class="indicator {{ $json.credit_analysis.indicators.ap_marker.flagged === true ? 'indicator-red' : 'indicator-gray' }}">
-                        <div class="indicator-dot {{ $json.credit_analysis.indicators.ap_marker.flagged === true ? 'dot-red' : 'dot-gray' }}"></div>
+                    <div
+                        class="indicator {{ $json.credit_analysis.indicators.ap_marker.flagged === true ? 'indicator-red' : 'indicator-gray' }}">
+                        <div
+                            class="indicator-dot {{ $json.credit_analysis.indicators.ap_marker.flagged === true ? 'dot-red' : 'dot-gray' }}">
+                        </div>
                         <div class="indicator-content">
                             <h3>AP Marker</h3>
-                            <p>Payment arrangement marker shows applicant negotiated reduced payments. Indicates financial stress and inability to meet original obligations.</p>
+                            <p>Payment arrangement marker shows applicant negotiated reduced payments. Indicates
+                                financial stress and inability to meet original obligations.</p>
                         </div>
                     </div>
 
-                    <div class="indicator {{ $json.credit_analysis.indicators.arrears_last_6_months.flagged === true ? 'indicator-red' : 'indicator-gray' }}">
-                        <div class="indicator-dot {{ $json.credit_analysis.indicators.arrears_last_6_months.flagged === true ? 'dot-red' : 'dot-gray' }}"></div>
+                    <div
+                        class="indicator {{ $json.credit_analysis.indicators.arrears_last_6_months.flagged === true ? 'indicator-red' : 'indicator-gray' }}">
+                        <div
+                            class="indicator-dot {{ $json.credit_analysis.indicators.arrears_last_6_months.flagged === true ? 'dot-red' : 'dot-gray' }}">
+                        </div>
                         <div class="indicator-content">
                             <h3>Arrears in Last 6 Months</h3>
-                            <p>Recent missed payments within 6 months. Shows ongoing payment difficulties and deteriorating financial position.</p>
+                            <p>Recent missed payments within 6 months. Shows ongoing payment difficulties and
+                                deteriorating financial position.</p>
                         </div>
                     </div>
 
-                    <div class="indicator {{ $json.credit_analysis.indicators.credit_utilisation_over_80.flagged === true ? 'indicator-red' : 'indicator-gray' }}">
-                        <div class="indicator-dot {{ $json.credit_analysis.indicators.credit_utilisation_over_80.flagged === true ? 'dot-red' : 'dot-gray' }}"></div>
+                    <div
+                        class="indicator {{ $json.credit_analysis.indicators.credit_utilisation_over_80.flagged === true ? 'indicator-red' : 'indicator-gray' }}">
+                        <div
+                            class="indicator-dot {{ $json.credit_analysis.indicators.credit_utilisation_over_80.flagged === true ? 'dot-red' : 'dot-gray' }}">
+                        </div>
                         <div class="indicator-content">
                             <h3>Credit Utilisation >80%</h3>
-                            <p>Applicant using over 80% of available credit. Indicates over-reliance on credit and limited financial buffer.</p>
+                            <p>Applicant using over 80% of available credit. Indicates over-reliance on credit and
+                                limited financial buffer.</p>
                         </div>
                     </div>
 
-                    <div class="indicator {{ $json.credit_analysis.indicators.rapid_borrowing.flagged === true ? 'indicator-red' : 'indicator-gray' }}">
-                        <div class="indicator-dot {{ $json.credit_analysis.indicators.rapid_borrowing.flagged === true ? 'dot-red' : 'dot-gray' }}"></div>
+                    <div
+                        class="indicator {{ $json.credit_analysis.indicators.rapid_borrowing.flagged === true ? 'indicator-red' : 'indicator-gray' }}">
+                        <div
+                            class="indicator-dot {{ $json.credit_analysis.indicators.rapid_borrowing.flagged === true ? 'dot-red' : 'dot-gray' }}">
+                        </div>
                         <div class="indicator-content">
                             <h3>Rapid Borrowing Acceleration</h3>
-                            <p>Multiple new credit applications in short period. Suggests applicant seeking additional credit to manage existing debt.</p>
+                            <p>Multiple new credit applications in short period. Suggests applicant seeking additional
+                                credit to manage existing debt.</p>
                         </div>
                     </div>
 
-                    <div class="indicator {{ $json.credit_analysis.indicators.repeat_lending.flagged === true ? 'indicator-red' : 'indicator-gray' }}">
-                        <div class="indicator-dot {{ $json.credit_analysis.indicators.repeat_lending.flagged === true ? 'dot-red' : 'dot-gray' }}"></div>
+                    <div
+                        class="indicator {{ $json.credit_analysis.indicators.repeat_lending.flagged === true ? 'indicator-red' : 'indicator-gray' }}">
+                        <div
+                            class="indicator-dot {{ $json.credit_analysis.indicators.repeat_lending.flagged === true ? 'dot-red' : 'dot-gray' }}">
+                        </div>
                         <div class="indicator-content">
                             <h3>Repeat Lending</h3>
-                            <p>Multiple agreements with same lender or refinancing/top-ups. Pattern suggests lender not reassessing affordability despite worsening profile.</p>
+                            <p>Multiple agreements with same lender or refinancing/top-ups. Pattern suggests lender not
+                                reassessing affordability despite worsening profile.</p>
                         </div>
                     </div>
                 </div>
@@ -413,33 +450,22 @@
             </div>
             <div class="card-body">
                 <div class="indicator-list">
+                    {{ $json.credit_analysis.claims_analysis.in_scope.map(item => `
                     <div class="indicator indicator-green">
                         <div class="indicator-dot dot-green"></div>
                         <div class="indicator-content">
                             <h3>
-                                {{ $json.ai_analysis.in_scope[0].name }}
-                                <span class="badge badge-blue">{{ $json.ai_analysis.in_scope[0].entity_type }}</span>
+                                ${item.name}
+                                <span class="badge badge-blue">${item.type}</span>
                             </h3>
-                            <p class="reason">{{ $json.ai_analysis.in_scope[0].reason_title }}</p>
-                            <p>{{ $json.ai_analysis.in_scope[0].reason_summary }}</p>
+                            <p class="reason">${item.title}</p>
+                            <p>${item.body}</p>
                         </div>
                     </div>
-
-                    <div class="indicator indicator-green">
-                        <div class="indicator-dot dot-green"></div>
-                        <div class="indicator-content">
-                            <h3>
-                                {{ $json.ai_analysis.in_scope[1].name }}
-                                <span class="badge badge-blue">{{ $json.ai_analysis.in_scope[1].entity_type }}</span>
-                            </h3>
-                            <p class="reason">{{ $json.ai_analysis.in_scope[1].reason_title }}</p>
-                            <p>{{ $json.ai_analysis.in_scope[1].reason_summary }}</p>
-                        </div>
-                    </div>
+                    `).join('') }}
                 </div>
             </div>
         </div>
-
         <div class="card">
             <div class="card-header">
                 <h2>Out-of-Scope: Not Defendants</h2>
@@ -447,17 +473,19 @@
             </div>
             <div class="card-body">
                 <div class="indicator-list">
+                    {{ $json.credit_analysis.claims_analysis.out_of_scope.map(item => `
                     <div class="indicator indicator-gray">
                         <div class="indicator-dot dot-gray"></div>
                         <div class="indicator-content">
                             <h3>
-                                {{ $json.ai_analysis.out_of_scope[0].name }}
-                                <span class="badge badge-blue">{{ $json.ai_analysis.out_of_scope[0].entity_type }}</span>
+                                ${item.name}
+                                <span class="badge badge-blue">${item.type}</span>
                             </h3>
-                            <p class="reason">{{ $json.ai_analysis.out_of_scope[0].reason_title }}</p>
-                            <p>{{ $json.ai_analysis.out_of_scope[0].reason_summary }}</p>
+                            <p class="reason">${item.title}</p>
+                            <p>${item.body}</p>
                         </div>
                     </div>
+                    `).join('') }}
                 </div>
             </div>
         </div>
