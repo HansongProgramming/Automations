@@ -141,13 +141,12 @@ def main():
     global running
     
     print("=" * 50)
-    print("Activity Simulator - Trackabi Demonstration Tool")
     print("=" * 50)
     print("\nThis script simulates user activity to demonstrate")
     print("that presence-based tracking is not productivity tracking.")
-    print("\n⚠️  Press SPACE BAR to stop the script at any time")
-    print("   OR press Ctrl+C")
-    print("   OR move mouse to top-left corner for emergency stop")
+    print("\n[!] Press SPACE BAR to stop the script at any time")
+    print("    OR press Ctrl+C")
+    print("    OR move mouse to top-left corner for emergency stop")
     print("=" * 50)
     
     # Start keyboard listener in background
@@ -159,8 +158,8 @@ def main():
         print(f"\nStarting in {i}...", end="\r")
         time.sleep(1)
     
-    print("\n\n✓ Script is now running...")
-    print("✓ Keyboard listener active - press SPACE to stop\n")
+    print("\n\n[OK] Script is now running...")
+    print("[OK] Keyboard listener active - press SPACE to stop\n")
     
     try:
         while running:
@@ -185,12 +184,19 @@ def main():
         log("Script terminated successfully")
 
 if __name__ == "__main__":
-    # Check if pyautogui is available
+    # Check if required libraries are available
     try:
         import pyautogui
     except ImportError:
         print("Error: pyautogui is not installed")
         print("Install it using: pip install pyautogui")
+        exit(1)
+    
+    try:
+        from pynput import keyboard
+    except ImportError:
+        print("Error: pynput is not installed")
+        print("Install it using: pip install pynput")
         exit(1)
     
     main()
