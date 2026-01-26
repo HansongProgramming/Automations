@@ -1,12 +1,25 @@
+# FastAPI and ASGI server
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
 pydantic==2.5.0
+
+# HTTP clients
 requests==2.31.0
-beautifulsoup4==4.12.2
 aiohttp==3.9.1
+
+# HTML/XML parsing
+beautifulsoup4==4.12.2
+lxml==5.1.0
+
+# PDF generation (Playwright for VPS-friendly HTML to PDF)
+playwright==1.40.0
+
+# Templating
+jinja2==3.1.2
+
+# File handling
 python-multipart==0.0.6
-lxml
-weasyprint
-python-dotenv
-jinja2
-Pillow
+Pillow==10.1.0
+
+# Configuration
+python-dotenv==1.0.0
