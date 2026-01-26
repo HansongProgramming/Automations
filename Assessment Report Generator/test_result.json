@@ -66,12 +66,6 @@
             "body": "This account defaulted on 22/02/2025 with an outstanding balance of \u00a3716. The default occurred within the first year, suggesting the credit may have been unaffordable at the point of lending. The lender should have identified this risk through proper affordability checks."
           },
           {
-            "name": "UNKNOWN",
-            "type": "Credit Card",
-            "title": "Potential irresponsible lending - high risk profile at approval",
-            "body": "At the time of lending (08/07/2024), the applicant's credit file showed 4 active CCJs and 12 existing defaults. Despite these red flags, credit was approved. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
-          },
-          {
             "name": "JAJA FINANCE LIMITED",
             "type": "Credit Card",
             "title": "Potential irresponsible lending - high risk profile at approval",
@@ -110,14 +104,8 @@
           {
             "name": "EE FLEX PAY",
             "type": "Unsecured Loan",
-            "title": "Potential irresponsible lending - high risk profile at approval",
-            "body": "At the time of lending (21/10/2023), the applicant's credit file showed 4 active CCJs and 11 existing defaults. Despite these red flags, credit was approved. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
-          },
-          {
-            "name": "EE FLEX PAY",
-            "type": "Unsecured Loan",
-            "title": "Potential irresponsible lending - high risk profile at approval",
-            "body": "At the time of lending (21/09/2024), the applicant's credit file showed 4 active CCJs and 12 existing defaults. Despite these red flags, credit was approved. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
+            "title": "Multiple high-risk approvals (2 accounts)",
+            "body": "Accounts were opened on 21/09/2024 and 21/10/2023. This pattern of repeat lending raises concerns about whether proper affordability checks were conducted. The credit file at the time showed 4 active CCJs and 11 existing defaults, yet credit continued to be extended."
           },
           {
             "name": "NEXT DIRECTORY",
@@ -160,20 +148,14 @@
           {
             "name": "HUTCHISON",
             "type": "Comms Supply Account",
-            "title": "No lending decision made",
-            "body": "The account relates to a communications supply service, not a credit agreement. As no credit was extended, the FCA's irresponsible lending rules do not apply. This type of account falls outside the scope of affordability assessments required for credit products."
-          },
-          {
-            "name": "HUTCHISON",
-            "type": "Comms Supply Account",
-            "title": "No lending decision made",
-            "body": "The account relates to a communications supply service, not a credit agreement. As no credit was extended, the FCA's irresponsible lending rules do not apply. This type of account falls outside the scope of affordability assessments required for credit products."
+            "title": "No lending decision made (2 accounts)",
+            "body": "The account relates to a communications supply service, not a credit agreement. As no credit was extended, the FCA's irresponsible lending rules do not apply. This type of account falls outside the scope of affordability assessments required for credit products. Multiple accounts were opened on 21/12/2015 and 26/08/2014."
           },
           {
             "name": "LOWELL PORTFOLIO",
             "type": "Credit Card",
-            "title": "Debt purchaser - not original lender",
-            "body": "This account is held by a debt collection agency or debt purchaser who acquired the debt after default. Claims for irresponsible lending must be directed at the original lender who made the lending decision, not subsequent debt owners. The original creditor would need to be identified to pursue any potential claim."
+            "title": "Debt purchaser - not original lender (3 accounts)",
+            "body": "This account is held by a debt collection agency or debt purchaser who acquired the debt after default. Claims for irresponsible lending must be directed at the original lender who made the lending decision, not subsequent debt owners. The original creditor would need to be identified to pursue any potential claim. Multiple accounts were opened on 11/01/2021, 11/07/2017, and 22/05/2024."
           },
           {
             "name": "CABOT CREDIT MANAGEMENT GROUP LTD",
@@ -194,34 +176,10 @@
             "body": "The account relates to a current account, not a credit agreement. As no credit was extended, the FCA's irresponsible lending rules do not apply. This type of account falls outside the scope of affordability assessments required for credit products."
           },
           {
-            "name": "LOWELL PORTFOLIO",
-            "type": "Unsecured Loan",
-            "title": "Debt purchaser - not original lender",
-            "body": "This account is held by a debt collection agency or debt purchaser who acquired the debt after default. Claims for irresponsible lending must be directed at the original lender who made the lending decision, not subsequent debt owners. The original creditor would need to be identified to pursue any potential claim."
-          },
-          {
-            "name": "LOWELL PORTFOLIO",
-            "type": "Mail Order Account",
-            "title": "Debt purchaser - not original lender",
-            "body": "This account is held by a debt collection agency or debt purchaser who acquired the debt after default. Claims for irresponsible lending must be directed at the original lender who made the lending decision, not subsequent debt owners. The original creditor would need to be identified to pursue any potential claim."
-          },
-          {
             "name": "LANTERN DEBT RECOVERY SERVICES LTD",
             "type": "Budget Account",
-            "title": "Debt purchaser - not original lender",
-            "body": "This account is held by a debt collection agency or debt purchaser who acquired the debt after default. Claims for irresponsible lending must be directed at the original lender who made the lending decision, not subsequent debt owners. The original creditor would need to be identified to pursue any potential claim."
-          },
-          {
-            "name": "LANTERN DEBT RECOVERY SERVICES LTD",
-            "type": "Home Lending Agreement",
-            "title": "Debt purchaser - not original lender",
-            "body": "This account is held by a debt collection agency or debt purchaser who acquired the debt after default. Claims for irresponsible lending must be directed at the original lender who made the lending decision, not subsequent debt owners. The original creditor would need to be identified to pursue any potential claim."
-          },
-          {
-            "name": "LANTERN DEBT RECOVERY SERVICES LTD",
-            "type": "Home Lending Agreement",
-            "title": "Debt purchaser - not original lender",
-            "body": "This account is held by a debt collection agency or debt purchaser who acquired the debt after default. Claims for irresponsible lending must be directed at the original lender who made the lending decision, not subsequent debt owners. The original creditor would need to be identified to pursue any potential claim."
+            "title": "Debt purchaser - not original lender (3 accounts)",
+            "body": "This account is held by a debt collection agency or debt purchaser who acquired the debt after default. Claims for irresponsible lending must be directed at the original lender who made the lending decision, not subsequent debt owners. The original creditor would need to be identified to pursue any potential claim. Multiple accounts were opened on 02/02/2021, 12/11/2020, and 17/11/2020."
           },
           {
             "name": "PERCH",
@@ -386,34 +344,10 @@
             "body": "When this credit was approved (19/03/2021), the credit file indicated 1 existing default. The approval raises questions about whether proper affordability assessments were conducted, particularly regarding the applicant's ability to repay without financial difficulty."
           },
           {
-            "name": "UNKNOWN",
-            "type": "Credit Card",
-            "title": "Account defaulted - affordability concerns",
-            "body": "This account defaulted on 19/08/2024 with an outstanding balance of \u00a34074. The default occurred approximately 3 years after opening, suggesting the credit may have been unaffordable at the point of lending. The lender should have identified this risk through proper affordability checks."
-          },
-          {
-            "name": "UNKNOWN",
-            "type": "Credit Card",
-            "title": "Credit approved with clean profile",
-            "body": "At the time of lending (10/06/2019), the credit file showed minimal adverse information.  While this suggests reasonable lending at origination, any subsequent affordability issues would depend on income verification and expenditure checks not visible in the credit file."
-          },
-          {
             "name": "CAPITAL ONE (EUROPE) PLC",
             "type": "Credit Card",
-            "title": "Credit approved with clean profile",
-            "body": "At the time of lending (29/07/2019), the credit file showed minimal adverse information.  While this suggests reasonable lending at origination, any subsequent affordability issues would depend on income verification and expenditure checks not visible in the credit file."
-          },
-          {
-            "name": "CAPITAL ONE (EUROPE) PLC",
-            "type": "Credit Card",
-            "title": "Credit approved with clean profile",
-            "body": "At the time of lending (29/11/2019), the credit file showed minimal adverse information.  While this suggests reasonable lending at origination, any subsequent affordability issues would depend on income verification and expenditure checks not visible in the credit file."
-          },
-          {
-            "name": "UNKNOWN",
-            "type": "Credit Card",
-            "title": "Questionable lending decision - existing credit concerns",
-            "body": "When this credit was approved (24/03/2021), the credit file indicated 1 existing default. The approval raises questions about whether proper affordability assessments were conducted, particularly regarding the applicant's ability to repay without financial difficulty."
+            "title": "Sub-prime lending pattern (2 accounts)",
+            "body": "Accounts were opened on 29/07/2019 and 29/11/2019. This pattern of repeat lending raises concerns about whether proper affordability checks were conducted.  As a sub-prime lender, there were heightened obligations to ensure responsible lending practices."
           },
           {
             "name": "MONEYBARN NO",
@@ -432,18 +366,6 @@
             "type": "Hire Purchase",
             "title": "Credit approved with clean profile",
             "body": "At the time of lending (09/10/2020), the credit file showed minimal adverse information.  While this suggests reasonable lending at origination, any subsequent affordability issues would depend on income verification and expenditure checks not visible in the credit file."
-          },
-          {
-            "name": "UNKNOWN",
-            "type": "Unsecured Loan",
-            "title": "Potential irresponsible lending - high risk profile at approval",
-            "body": "At the time of lending (17/10/2022), the applicant's credit file showed 2 existing defaults. Despite these red flags, credit was approved. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
-          },
-          {
-            "name": "UNKNOWN",
-            "type": "Unsecured Loan",
-            "title": "Potential irresponsible lending - high risk profile at approval",
-            "body": "At the time of lending (29/07/2024), the applicant's credit file showed 2 existing defaults. Despite these red flags, credit was approved. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
           },
           {
             "name": "PREMIUM CREDIT LIMITED",
@@ -484,12 +406,6 @@
             "body": "This account is held by a debt collection agency or debt purchaser who acquired the debt after default. Claims for irresponsible lending must be directed at the original lender who made the lending decision, not subsequent debt owners. The original creditor would need to be identified to pursue any potential claim."
           },
           {
-            "name": "UNKNOWN",
-            "type": "Current Account",
-            "title": "No lending decision made",
-            "body": "The account relates to a current account, not a credit agreement. As no credit was extended, the FCA's irresponsible lending rules do not apply. This type of account falls outside the scope of affordability assessments required for credit products."
-          },
-          {
             "name": "BARCLAYS BANK",
             "type": "Current Account",
             "title": "No lending decision made",
@@ -503,11 +419,6 @@
               "lender": "VIRGIN MEDIA GROUP",
               "date": "21/09/2021",
               "amount": "\u00a3246"
-            },
-            {
-              "lender": "UNKNOWN",
-              "date": "19/08/2024",
-              "amount": "\u00a34074"
             },
             {
               "lender": "LOWELL PORTFOLIO",
@@ -587,40 +498,10 @@
             "body": "At the time of lending (17/05/2023), the applicant's credit file showed 4 existing defaults. Despite these red flags, credit was approved by a sub-prime lender. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
           },
           {
-            "name": "UNKNOWN",
-            "type": "Credit Card",
-            "title": "Potential irresponsible lending - high risk profile at approval",
-            "body": "At the time of lending (12/12/2024), the applicant's credit file showed 4 existing defaults. Despite these red flags, credit was approved. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
-          },
-          {
             "name": "CAPITAL ONE (EUROPE) PLC",
             "type": "Credit Card",
-            "title": "Potential irresponsible lending - high risk profile at approval",
-            "body": "At the time of lending (18/01/2017), the applicant's credit file showed 2 existing defaults. Despite these red flags, credit was approved by a sub-prime lender. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
-          },
-          {
-            "name": "UNKNOWN",
-            "type": "Credit Card",
-            "title": "Potential irresponsible lending - high risk profile at approval",
-            "body": "At the time of lending (07/04/2017), the applicant's credit file showed 2 existing defaults. Despite these red flags, credit was approved. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
-          },
-          {
-            "name": "UNKNOWN",
-            "type": "Credit Card",
-            "title": "Potential irresponsible lending - high risk profile at approval",
-            "body": "At the time of lending (13/05/2024), the applicant's credit file showed 4 existing defaults. Despite these red flags, credit was approved. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
-          },
-          {
-            "name": "CAPITAL ONE (EUROPE) PLC",
-            "type": "Credit Card",
-            "title": "Potential irresponsible lending - high risk profile at approval",
-            "body": "At the time of lending (28/06/2017), the applicant's credit file showed 2 existing defaults. Despite these red flags, credit was approved by a sub-prime lender. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
-          },
-          {
-            "name": "CAPITAL ONE (EUROPE) PLC",
-            "type": "Credit Card",
-            "title": "Potential irresponsible lending - high risk profile at approval",
-            "body": "At the time of lending (19/07/2024), the applicant's credit file showed 4 existing defaults. Despite these red flags, credit was approved by a sub-prime lender. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
+            "title": "Multiple high-risk approvals (3 accounts)",
+            "body": "Accounts were opened on 18/01/2017, 19/07/2024, and 28/06/2017. This pattern of repeat lending raises concerns about whether proper affordability checks were conducted. The credit file at the time showed 2 existing defaults, yet credit continued to be extended. As a sub-prime lender, there were heightened obligations to ensure responsible lending practices."
           },
           {
             "name": "NEW DAY",
@@ -667,8 +548,8 @@
           {
             "name": "JD WILLIAMS TA JACAMO",
             "type": "Mail Order Account",
-            "title": "Credit approved with clean profile",
-            "body": "At the time of lending (24/06/2016), the credit file showed minimal adverse information.  While this suggests reasonable lending at origination, any subsequent affordability issues would depend on income verification and expenditure checks not visible in the credit file."
+            "title": "Multiple high-risk approvals (2 accounts)",
+            "body": "Accounts were opened on 24/06/2016 and 25/06/2017. This pattern of repeat lending raises concerns about whether proper affordability checks were conducted. The credit file at the time showed 2 existing defaults, yet credit continued to be extended."
           },
           {
             "name": "J D WILLIAMS & CO LTD",
@@ -677,28 +558,16 @@
             "body": "At the time of lending (10/05/2016), the credit file showed minimal adverse information.  While this suggests reasonable lending at origination, any subsequent affordability issues would depend on income verification and expenditure checks not visible in the credit file."
           },
           {
-            "name": "JD WILLIAMS TA JACAMO",
-            "type": "Mail Order Account",
-            "title": "Potential irresponsible lending - high risk profile at approval",
-            "body": "At the time of lending (25/06/2017), the applicant's credit file showed 2 existing defaults. Despite these red flags, credit was approved. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
-          },
-          {
             "name": "JD WILLIAMS TA FASHION WORLD",
             "type": "Mail Order Account",
-            "title": "Potential irresponsible lending - high risk profile at approval",
-            "body": "At the time of lending (06/12/2019), the applicant's credit file showed 2 existing defaults. Despite these red flags, credit was approved. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
+            "title": "Multiple high-risk approvals (2 accounts)",
+            "body": "Accounts were opened on 06/12/2019 and 17/09/2024. This pattern of repeat lending raises concerns about whether proper affordability checks were conducted. The credit file at the time showed 2 existing defaults, yet credit continued to be extended."
           },
           {
             "name": "SHOP DIRECT FINANCE COMPANY LTD",
             "type": "Mail Order Account",
             "title": "Account defaulted - affordability concerns",
             "body": "This account defaulted on 19/08/2021 with an outstanding balance of \u00a3794. The default occurred approximately 2 years after opening, suggesting the credit may have been unaffordable at the point of lending. The lender should have identified this risk through proper affordability checks."
-          },
-          {
-            "name": "JD WILLIAMS TA FASHION WORLD",
-            "type": "Mail Order Account",
-            "title": "Potential irresponsible lending - high risk profile at approval",
-            "body": "At the time of lending (17/09/2024), the applicant's credit file showed 4 existing defaults. Despite these red flags, credit was approved. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
           },
           {
             "name": "JD WILLIAMS TA PREMIER MAN",
@@ -729,26 +598,8 @@
           {
             "name": "HUTCHISON",
             "type": "Comms Supply Account",
-            "title": "No lending decision made",
-            "body": "The account relates to a communications supply service, not a credit agreement. As no credit was extended, the FCA's irresponsible lending rules do not apply. This type of account falls outside the scope of affordability assessments required for credit products."
-          },
-          {
-            "name": "HUTCHISON",
-            "type": "Comms Supply Account",
-            "title": "No lending decision made",
-            "body": "The account relates to a communications supply service, not a credit agreement. As no credit was extended, the FCA's irresponsible lending rules do not apply. This type of account falls outside the scope of affordability assessments required for credit products."
-          },
-          {
-            "name": "HUTCHISON",
-            "type": "Comms Supply Account",
-            "title": "No lending decision made",
-            "body": "The account relates to a communications supply service, not a credit agreement. As no credit was extended, the FCA's irresponsible lending rules do not apply. This type of account falls outside the scope of affordability assessments required for credit products."
-          },
-          {
-            "name": "HUTCHISON",
-            "type": "Comms Supply Account",
-            "title": "No lending decision made",
-            "body": "The account relates to a communications supply service, not a credit agreement. As no credit was extended, the FCA's irresponsible lending rules do not apply. This type of account falls outside the scope of affordability assessments required for credit products."
+            "title": "No lending decision made (4 accounts)",
+            "body": "The account relates to a communications supply service, not a credit agreement. As no credit was extended, the FCA's irresponsible lending rules do not apply. This type of account falls outside the scope of affordability assessments required for credit products. Multiple accounts were opened on 05/12/2017, 11/02/2014, 21/06/2013, and 31/07/2012."
           },
           {
             "name": "CABOT CREDIT MANAGEMENT GROUP LTD",
@@ -871,12 +722,6 @@
             "body": "At the time of lending (23/02/2018), the applicant's credit file showed 2 existing defaults. Despite these red flags, credit was approved. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
           },
           {
-            "name": "UNKNOWN",
-            "type": "Unsecured Loan",
-            "title": "Potential irresponsible lending - high risk profile at approval",
-            "body": "At the time of lending (24/10/2022), the applicant's credit file showed 3 existing defaults. Despite these red flags, credit was approved. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
-          },
-          {
             "name": "PREMIUM CREDIT LIMITED",
             "type": "Unsecured Loan",
             "title": "Potential irresponsible lending - high risk profile at approval",
@@ -891,32 +736,8 @@
           {
             "name": "O",
             "type": "Unsecured Loan",
-            "title": "Potential irresponsible lending - high risk profile at approval",
-            "body": "At the time of lending (17/07/2024), the applicant's credit file showed 3 existing defaults. Despite these red flags, credit was approved. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
-          },
-          {
-            "name": "UNKNOWN",
-            "type": "Unsecured Loan",
-            "title": "Potential irresponsible lending - high risk profile at approval",
-            "body": "At the time of lending (23/08/2024), the applicant's credit file showed 3 existing defaults. Despite these red flags, credit was approved. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
-          },
-          {
-            "name": "UNKNOWN",
-            "type": "Unsecured Loan",
-            "title": "Potential irresponsible lending - high risk profile at approval",
-            "body": "At the time of lending (24/10/2022), the applicant's credit file showed 3 existing defaults. Despite these red flags, credit was approved. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
-          },
-          {
-            "name": "O",
-            "type": "Unsecured Loan",
-            "title": "Potential irresponsible lending - high risk profile at approval",
-            "body": "At the time of lending (11/08/2021), the applicant's credit file showed 2 existing defaults. Despite these red flags, credit was approved. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
-          },
-          {
-            "name": "UNKNOWN",
-            "type": "Unsecured Loan",
-            "title": "Potential irresponsible lending - high risk profile at approval",
-            "body": "At the time of lending (17/07/2023), the applicant's credit file showed 3 existing defaults. Despite these red flags, credit was approved. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
+            "title": "Multiple high-risk approvals (2 accounts)",
+            "body": "Accounts were opened on 11/08/2021 and 17/07/2024. This pattern of repeat lending raises concerns about whether proper affordability checks were conducted. The credit file at the time showed 3 existing defaults, yet credit continued to be extended."
           },
           {
             "name": "ZILCH",
@@ -927,44 +748,8 @@
           {
             "name": "MUTUAL CLOTHING AND SUPPLY",
             "type": "Home Lending Agreement",
-            "title": "Potential irresponsible lending - high risk profile at approval",
-            "body": "At the time of lending (18/03/2023), the applicant's credit file showed 3 existing defaults. Despite these red flags, credit was approved. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
-          },
-          {
-            "name": "MUTUAL CLOTHING AND SUPPLY",
-            "type": "Home Lending Agreement",
-            "title": "Potential irresponsible lending - high risk profile at approval",
-            "body": "At the time of lending (15/03/2025), the applicant's credit file showed 3 existing defaults. Despite these red flags, credit was approved. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
-          },
-          {
-            "name": "MUTUAL CLOTHING AND SUPPLY",
-            "type": "Home Lending Agreement",
-            "title": "Potential irresponsible lending - high risk profile at approval",
-            "body": "At the time of lending (20/04/2024), the applicant's credit file showed 3 existing defaults. Despite these red flags, credit was approved. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
-          },
-          {
-            "name": "MUTUAL CLOTHING AND SUPPLY",
-            "type": "Home Lending Agreement",
-            "title": "Potential irresponsible lending - high risk profile at approval",
-            "body": "At the time of lending (07/10/2023), the applicant's credit file showed 3 existing defaults. Despite these red flags, credit was approved. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
-          },
-          {
-            "name": "MUTUAL CLOTHING AND SUPPLY",
-            "type": "Home Lending Agreement",
-            "title": "Potential irresponsible lending - high risk profile at approval",
-            "body": "At the time of lending (02/11/2024), the applicant's credit file showed 3 existing defaults. Despite these red flags, credit was approved. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
-          },
-          {
-            "name": "MUTUAL CLOTHING AND SUPPLY",
-            "type": "Home Lending Agreement",
-            "title": "Potential irresponsible lending - high risk profile at approval",
-            "body": "At the time of lending (20/08/2022), the applicant's credit file showed 3 existing defaults. Despite these red flags, credit was approved. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
-          },
-          {
-            "name": "MUTUAL CLOTHING AND SUPPLY",
-            "type": "Home Lending Agreement",
-            "title": "Account defaulted - affordability concerns",
-            "body": "This account defaulted on 17/09/2008 with an outstanding balance of \u00a3240. The default occurred within 6 months of the account opening, suggesting the credit may have been unaffordable at the point of lending. The lender should have identified this risk through proper affordability checks."
+            "title": "Pattern of irresponsible lending (7 accounts)",
+            "body": "Accounts were opened on 02/11/2024, 07/10/2023, 12/03/2022, 15/03/2025, 18/03/2023, 20/04/2024, and 20/08/2022. 1 of these accounts subsequently defaulted. This pattern of repeat lending raises concerns about whether proper affordability checks were conducted. The credit file at the time showed 3 existing defaults, yet credit continued to be extended."
           }
         ],
         "out_of_scope": [
@@ -1074,62 +859,14 @@
           {
             "name": "STARTLINE MOTOR FINANCE LTD",
             "type": "Hire Purchase",
-            "title": "Potential irresponsible lending - high risk profile at approval",
-            "body": "At the time of lending (27/03/2019), the applicant's credit file showed 2 existing defaults. Despite these red flags, credit was approved. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
-          },
-          {
-            "name": "STARTLINE MOTOR FINANCE LTD",
-            "type": "Hire Purchase",
-            "title": "Potential irresponsible lending - high risk profile at approval",
-            "body": "At the time of lending (11/03/2021), the applicant's credit file showed 2 existing defaults. Despite these red flags, credit was approved. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
-          },
-          {
-            "name": "STARTLINE MOTOR FINANCE LTD",
-            "type": "Hire Purchase",
-            "title": "Potential irresponsible lending - high risk profile at approval",
-            "body": "At the time of lending (03/04/2024), the applicant's credit file showed 3 existing defaults. Despite these red flags, credit was approved. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
+            "title": "Multiple high-risk approvals (3 accounts)",
+            "body": "Accounts were opened on 03/04/2024, 11/03/2021, and 27/03/2019. This pattern of repeat lending raises concerns about whether proper affordability checks were conducted. The credit file at the time showed 2 existing defaults, yet credit continued to be extended."
           },
           {
             "name": "VIRGIN MEDIA MOBILE FINANCE LTD",
             "type": "Unsecured Loan",
-            "title": "Potential irresponsible lending - high risk profile at approval",
-            "body": "At the time of lending (19/09/2021), the applicant's credit file showed 2 existing defaults. Despite these red flags, credit was approved. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
-          },
-          {
-            "name": "VIRGIN MEDIA MOBILE FINANCE LTD",
-            "type": "Unsecured Loan",
-            "title": "Potential irresponsible lending - high risk profile at approval",
-            "body": "At the time of lending (23/11/2019), the applicant's credit file showed 2 existing defaults. Despite these red flags, credit was approved. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
-          },
-          {
-            "name": "VIRGIN MEDIA MOBILE FINANCE LTD",
-            "type": "Unsecured Loan",
-            "title": "Potential irresponsible lending - high risk profile at approval",
-            "body": "At the time of lending (24/10/2021), the applicant's credit file showed 2 existing defaults. Despite these red flags, credit was approved. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
-          },
-          {
-            "name": "VIRGIN MEDIA MOBILE FINANCE LTD",
-            "type": "Unsecured Loan",
-            "title": "Potential irresponsible lending - high risk profile at approval",
-            "body": "At the time of lending (21/11/2020), the applicant's credit file showed 2 existing defaults. Despite these red flags, credit was approved. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
-          },
-          {
-            "name": "VIRGIN MEDIA MOBILE FINANCE LTD",
-            "type": "Unsecured Loan",
-            "title": "Potential irresponsible lending - high risk profile at approval",
-            "body": "At the time of lending (23/12/2019), the applicant's credit file showed 2 existing defaults. Despite these red flags, credit was approved. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
-          },
-          {
-            "name": "VIRGIN MEDIA MOBILE FINANCE LTD",
-            "type": "Unsecured Loan",
-            "title": "Questionable lending decision - existing credit concerns",
-            "body": "When this credit was approved (06/11/2017), the credit file indicated 1 existing default. The approval raises questions about whether proper affordability assessments were conducted, particularly regarding the applicant's ability to repay without financial difficulty."
-          },
-          {
-            "name": "VIRGIN MEDIA MOBILE FINANCE LTD",
-            "type": "Unsecured Loan",
-            "title": "Questionable lending decision - existing credit concerns",
-            "body": "When this credit was approved (14/08/2018), the credit file indicated 1 existing default. The approval raises questions about whether proper affordability assessments were conducted, particularly regarding the applicant's ability to repay without financial difficulty."
+            "title": "Multiple high-risk approvals (7 accounts)",
+            "body": "Accounts were opened on 06/11/2017, 14/08/2018, 19/09/2021, 21/11/2020, 23/11/2019, 23/12/2019, and 24/10/2021. This pattern of repeat lending raises concerns about whether proper affordability checks were conducted. The credit file at the time showed 2 existing defaults, yet credit continued to be extended."
           },
           {
             "name": "SHOP DIRECT FINANCE COMPANY LTD",
@@ -1148,26 +885,14 @@
           {
             "name": "VIRGIN MOBILE TELECOMS LTD",
             "type": "Comms Supply Account",
-            "title": "No lending decision made",
-            "body": "The account relates to a communications supply service, not a credit agreement. As no credit was extended, the FCA's irresponsible lending rules do not apply. This type of account falls outside the scope of affordability assessments required for credit products."
+            "title": "No lending decision made (3 accounts)",
+            "body": "The account relates to a communications supply service, not a credit agreement. As no credit was extended, the FCA's irresponsible lending rules do not apply. This type of account falls outside the scope of affordability assessments required for credit products. Multiple accounts were opened on 09/05/2013, 09/05/2013, and 09/05/2013."
           },
           {
             "name": "O",
             "type": "Comms Supply Account",
-            "title": "No lending decision made",
-            "body": "The account relates to a communications supply service, not a credit agreement. As no credit was extended, the FCA's irresponsible lending rules do not apply. This type of account falls outside the scope of affordability assessments required for credit products."
-          },
-          {
-            "name": "VIRGIN MOBILE TELECOMS LTD",
-            "type": "Comms Supply Account",
-            "title": "No lending decision made",
-            "body": "The account relates to a communications supply service, not a credit agreement. As no credit was extended, the FCA's irresponsible lending rules do not apply. This type of account falls outside the scope of affordability assessments required for credit products."
-          },
-          {
-            "name": "O",
-            "type": "Comms Supply Account",
-            "title": "No lending decision made",
-            "body": "The account relates to a communications supply service, not a credit agreement. As no credit was extended, the FCA's irresponsible lending rules do not apply. This type of account falls outside the scope of affordability assessments required for credit products."
+            "title": "No lending decision made (3 accounts)",
+            "body": "The account relates to a communications supply service, not a credit agreement. As no credit was extended, the FCA's irresponsible lending rules do not apply. This type of account falls outside the scope of affordability assessments required for credit products. Multiple accounts were opened on 08/06/2023, 08/07/2023, and 08/08/2023."
           },
           {
             "name": "BT CONSUMER",
@@ -1176,34 +901,16 @@
             "body": "The account relates to a communications supply service, not a credit agreement. As no credit was extended, the FCA's irresponsible lending rules do not apply. This type of account falls outside the scope of affordability assessments required for credit products."
           },
           {
-            "name": "VIRGIN MOBILE TELECOMS LTD",
-            "type": "Comms Supply Account",
-            "title": "No lending decision made",
-            "body": "The account relates to a communications supply service, not a credit agreement. As no credit was extended, the FCA's irresponsible lending rules do not apply. This type of account falls outside the scope of affordability assessments required for credit products."
-          },
-          {
-            "name": "O",
-            "type": "Comms Supply Account",
-            "title": "No lending decision made",
-            "body": "The account relates to a communications supply service, not a credit agreement. As no credit was extended, the FCA's irresponsible lending rules do not apply. This type of account falls outside the scope of affordability assessments required for credit products."
-          },
-          {
             "name": "LOWELL PORTFOLIO",
             "type": "Credit Card",
-            "title": "Debt purchaser - not original lender",
-            "body": "This account is held by a debt collection agency or debt purchaser who acquired the debt after default. Claims for irresponsible lending must be directed at the original lender who made the lending decision, not subsequent debt owners. The original creditor would need to be identified to pursue any potential claim."
+            "title": "Debt purchaser - not original lender (2 accounts)",
+            "body": "This account is held by a debt collection agency or debt purchaser who acquired the debt after default. Claims for irresponsible lending must be directed at the original lender who made the lending decision, not subsequent debt owners. The original creditor would need to be identified to pursue any potential claim. Multiple accounts were opened on 08/03/2019 and 10/08/2013."
           },
           {
             "name": "RBOS CURRENT ACCOUNTS",
             "type": "Current Account",
             "title": "No lending decision made",
             "body": "The account relates to a current account, not a credit agreement. As no credit was extended, the FCA's irresponsible lending rules do not apply. This type of account falls outside the scope of affordability assessments required for credit products."
-          },
-          {
-            "name": "LOWELL PORTFOLIO",
-            "type": "Comms Supply Account",
-            "title": "Debt purchaser - not original lender",
-            "body": "This account is held by a debt collection agency or debt purchaser who acquired the debt after default. Claims for irresponsible lending must be directed at the original lender who made the lending decision, not subsequent debt owners. The original creditor would need to be identified to pursue any potential claim."
           }
         ],
         "credit_timeline": {

@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 import re
 from typing import Dict, List, Any
+from collections import defaultdict
 from .account_summarizer import AccountSummarizer
 
 
@@ -372,6 +373,19 @@ class CreditReportAnalyzer:
         
         return client_info
     
+    def _group_accounts_by_lender(self, accounts: List[Dict]) -> Dict[str, List[Dict]]:
+        """Group accounts by lender, filtering out 'Unknown' lenders"""
+        grouped = defaultdict(list)
+        
+        for account in accounts:
+            lender = account.get('lender', 'Unknown').strip()
+            # Skip accounts with unknown lenders
+            if lender.upper() == 'UNKNOWN' or not lender:
+                continue
+            grouped[lender].append(account)
+        
+        return dict(grouped)
+    
     def categorize_accounts_for_claims(self, accounts: List[Dict], ccjs: List[Dict]) -> Dict[str, List[Dict]]:
         """Categorize accounts into potential in-scope and out-of-scope claims."""
         DEBT_COLLECTORS = [
@@ -390,8 +404,9 @@ class CreditReportAnalyzer:
             "Comms Supply Account"
         ]
         
-        in_scope = []
-        out_of_scope = []
+        # Separate accounts into in-scope and out-of-scope first
+        in_scope_raw = []
+        out_of_scope_raw = []
         
         credit_timeline = {
             'ccjs': [],
@@ -407,7 +422,13 @@ class CreditReportAnalyzer:
             })
         
         for account in accounts:
-            lender = account.get('Lender', 'Unknown').upper()
+            lender = account.get('Lender', 'Unknown').strip()
+            
+            # Skip accounts with unknown lenders entirely
+            if lender.upper() == 'UNKNOWN' or not lender:
+                continue
+            
+            lender_upper = lender.upper()
             account_type = account.get('Account Type', 'Unknown')
             account_num = account.get('Account Number', 'Unknown')
             start_date = account.get('Agreement Start Date', 'Unknown')
@@ -417,7 +438,7 @@ class CreditReportAnalyzer:
             
             if default_date and default_date != 'N/A':
                 credit_timeline['defaults'].append({
-                    'lender': lender,
+                    'lender': lender_upper,
                     'date': default_date,
                     'amount': loan_value
                 })
@@ -426,7 +447,7 @@ class CreditReportAnalyzer:
             arrears_count = sum(1 for p in payment_history if p['code'] in ['1', '2', '3', '4', '5', '6', 'A', 'B'])
             if arrears_count > 0:
                 credit_timeline['arrears_pattern'].append({
-                    'lender': lender,
+                    'lender': lender_upper,
                     'account': account_num,
                     'arrears_months': arrears_count
                 })
@@ -447,18 +468,18 @@ class CreditReportAnalyzer:
                 }
             }
             
-            is_debt_collector = any(keyword in lender for keyword in DEBT_COLLECTORS)
+            is_debt_collector = any(keyword in lender_upper for keyword in DEBT_COLLECTORS)
             is_non_credit = account_type in NON_CREDIT_TYPES
             
             if is_debt_collector:
-                out_of_scope.append({
+                out_of_scope_raw.append({
                     **account_summary,
                     'exclusion_reason': 'debt_collector',
                     'notes': 'Not original lender - debt purchaser/collection agency'
                 })
             
             elif is_non_credit:
-                out_of_scope.append({
+                out_of_scope_raw.append({
                     **account_summary,
                     'exclusion_reason': 'no_lending_decision',
                     'notes': f'{account_type} is not a credit agreement - FCA irresponsible lending rules do not apply'
@@ -469,17 +490,46 @@ class CreditReportAnalyzer:
                     start_date, ccjs, accounts, account
                 )
                 
-                is_subprime = any(sp in lender for sp in SUBPRIME_LENDERS)
+                is_subprime = any(sp in lender_upper for sp in SUBPRIME_LENDERS)
                 
-                in_scope.append({
+                in_scope_raw.append({
                     **account_summary,
                     'is_subprime_lender': is_subprime,
                     'risk_indicators_at_lending': risk_indicators
                 })
         
+        # Group by lender
+        in_scope_grouped = self._group_accounts_by_lender(in_scope_raw)
+        out_of_scope_grouped = self._group_accounts_by_lender(out_of_scope_raw)
+        
+        # Generate summaries - one per account but grouped display
+        in_scope_summaries = []
+        for lender, lender_accounts in in_scope_grouped.items():
+            if len(lender_accounts) == 1:
+                # Single account - process normally
+                summary = self.summarizer.summarize_in_scope(lender_accounts[0])
+                in_scope_summaries.append(summary)
+            else:
+                # Multiple accounts - create one grouped summary
+                dates = sorted([acc['start_date'] for acc in lender_accounts if acc['start_date'] != 'Unknown'])
+                grouped_summary = self.summarizer.summarize_in_scope_grouped(lender, lender_accounts, dates)
+                in_scope_summaries.append(grouped_summary)
+        
+        out_of_scope_summaries = []
+        for lender, lender_accounts in out_of_scope_grouped.items():
+            if len(lender_accounts) == 1:
+                # Single account - process normally
+                summary = self.summarizer.summarize_out_of_scope(lender_accounts[0])
+                out_of_scope_summaries.append(summary)
+            else:
+                # Multiple accounts - create one grouped summary
+                dates = sorted([acc['start_date'] for acc in lender_accounts if acc['start_date'] != 'Unknown'])
+                grouped_summary = self.summarizer.summarize_out_of_scope_grouped(lender, lender_accounts, dates)
+                out_of_scope_summaries.append(grouped_summary)
+        
         return {
-            'in_scope_accounts': in_scope,
-            'out_of_scope_accounts': out_of_scope,
+            'in_scope': in_scope_summaries,
+            'out_of_scope': out_of_scope_summaries,
             'credit_timeline': credit_timeline
         }
     
@@ -586,24 +636,10 @@ class CreditReportAnalyzer:
         
         claims_data = self.categorize_accounts_for_claims(accounts, ccjs)
         
-        in_scope_summaries = []
-        for account in claims_data['in_scope_accounts']:
-            summary = self.summarizer.summarize_in_scope(account)
-            in_scope_summaries.append(summary)
-        
-        out_of_scope_summaries = []
-        for account in claims_data['out_of_scope_accounts']:
-            summary = self.summarizer.summarize_out_of_scope(account)
-            out_of_scope_summaries.append(summary)
-        
         return {
             "client_info": client_info,
             "indicators": indicators,
             "total_points": total_points,
             "traffic_light": traffic_light,
-            "claims_analysis": {
-                "in_scope": in_scope_summaries,
-                "out_of_scope": out_of_scope_summaries,
-                "credit_timeline": claims_data['credit_timeline']
-            }
+            "claims_analysis": claims_data
         }

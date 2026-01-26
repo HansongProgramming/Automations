@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Dict
+from typing import Dict, List
 
 class AccountSummarizer:
     """
@@ -147,6 +147,16 @@ class AccountSummarizer:
         except:
             return 'after the account was opened'
     
+    def _format_date_list(self, dates: List[str]) -> str:
+        """Format a list of dates for display"""
+        if not dates:
+            return "Unknown dates"
+        if len(dates) == 1:
+            return dates[0]
+        if len(dates) == 2:
+            return f"{dates[0]} and {dates[1]}"
+        return f"{', '.join(dates[:-1])}, and {dates[-1]}"
+    
     def summarize_out_of_scope(self, account: Dict) -> Dict[str, str]:
         """Generate summary for out-of-scope account"""
         lender = account['lender']
@@ -165,6 +175,33 @@ class AccountSummarizer:
             'body': template['body'].format(
                 account_type_lower=self._format_account_type(account_type)
             )
+        }
+    
+    def summarize_out_of_scope_grouped(self, lender: str, accounts: List[Dict], dates: List[str]) -> Dict[str, str]:
+        """Generate grouped summary for multiple out-of-scope accounts from same lender"""
+        first_account = accounts[0]
+        account_type = first_account['account_type']
+        exclusion_reason = first_account['exclusion_reason']
+        
+        template = self.out_of_scope_templates.get(exclusion_reason, {
+            'title': 'Out of scope',
+            'body': 'This account falls outside the scope of irresponsible lending claims.'
+        })
+        
+        # Modify title to indicate multiple accounts
+        title = f"{template['title']} ({len(accounts)} accounts)"
+        
+        # Enhance body with date information
+        date_info = f" Multiple accounts were opened on {self._format_date_list(dates)}." if dates else ""
+        body = template['body'].format(
+            account_type_lower=self._format_account_type(account_type)
+        ) + date_info
+        
+        return {
+            'name': lender,
+            'type': account_type,
+            'title': title,
+            'body': body
         }
     
     def summarize_in_scope(self, account: Dict) -> Dict[str, str]:
@@ -225,4 +262,67 @@ class AccountSummarizer:
             'type': account_type,
             'title': template['title'],
             'body': body
+        }
+    
+    def summarize_in_scope_grouped(self, lender: str, accounts: List[Dict], dates: List[str]) -> Dict[str, str]:
+        """Generate grouped summary for multiple in-scope accounts from same lender"""
+        # Analyze all accounts to find the most concerning pattern
+        has_any_default = any(acc.get('default_date', 'N/A') != 'N/A' for acc in accounts)
+        is_subprime = any(acc.get('is_subprime_lender', False) for acc in accounts)
+        
+        # Calculate average/aggregate risk
+        risk_levels = [self._calculate_risk_level(acc.get('risk_indicators_at_lending', {})) for acc in accounts]
+        highest_risk = 'high' if 'high' in risk_levels else ('moderate' if 'moderate' in risk_levels else 'low')
+        
+        # Use the most representative account for base template
+        representative = accounts[0]
+        account_type = representative['account_type']
+        
+        # Select template based on aggregate analysis
+        if has_any_default and highest_risk in ['high', 'moderate']:
+            template_key = 'default_pattern'
+            title_suffix = f'Pattern of irresponsible lending ({len(accounts)} accounts)'
+        elif highest_risk == 'high':
+            template_key = 'high_risk_approved'
+            title_suffix = f'Multiple high-risk approvals ({len(accounts)} accounts)'
+        elif highest_risk == 'moderate':
+            template_key = 'moderate_risk_approved'
+            title_suffix = f'Repeated questionable lending ({len(accounts)} accounts)'
+        elif is_subprime:
+            template_key = 'subprime_pattern'
+            title_suffix = f'Sub-prime lending pattern ({len(accounts)} accounts)'
+        else:
+            template_key = 'clean_profile'
+            title_suffix = f'Multiple accounts opened ({len(accounts)} accounts)'
+        
+        # Build aggregated body text
+        date_text = f"Accounts were opened on {self._format_date_list(dates)}." if dates else f"{len(accounts)} accounts were opened with this lender."
+        
+        default_count = sum(1 for acc in accounts if acc.get('default_date', 'N/A') != 'N/A')
+        if default_count > 0:
+            outcome_text = f" {default_count} of these accounts subsequently defaulted."
+        else:
+            total_arrears = sum(acc.get('payment_history_summary', {}).get('arrears', 0) for acc in accounts)
+            if total_arrears > 0:
+                outcome_text = f" The accounts showed payment difficulties across {total_arrears} months."
+            else:
+                outcome_text = ""
+        
+        # Get risk summary from first account that has high/moderate risk
+        risk_account = next((acc for acc in accounts if self._calculate_risk_level(acc.get('risk_indicators_at_lending', {})) in ['high', 'moderate']), accounts[0])
+        risk_summary = self._build_risk_summary(risk_account.get('risk_indicators_at_lending', {}))
+        
+        body = f"{date_text}{outcome_text} This pattern of repeat lending raises concerns about whether proper affordability checks were conducted. "
+        
+        if highest_risk in ['high', 'moderate']:
+            body += f"The credit file at the time showed {risk_summary}, yet credit continued to be extended."
+        
+        if is_subprime:
+            body += " As a sub-prime lender, there were heightened obligations to ensure responsible lending practices."
+        
+        return {
+            'name': lender,
+            'type': account_type,
+            'title': title_suffix,
+            'body': body.strip()
         }
