@@ -10,3 +10,5 @@ openai
 weasyprint
 python-dotenv
 jinja2
+weasyprint
+Pillow

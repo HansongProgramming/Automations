@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 import asyncio
 from typing import List, Dict, Any
 import logging
@@ -9,6 +9,7 @@ from .models import AnalyzeRequest, AnalyzeResponse, SingleReportResult
 from .utils.html_fetcher import fetch_multiple_html
 from .analyzer.credit_analyzer import CreditReportAnalyzer
 from .utils.template_renderer import HTMLTemplateRenderer
+from .utils.pdf_generator import pdf_generator
 
 # Configure logging
 logging.basicConfig(
@@ -142,6 +143,134 @@ async def analyze_reports(request: AnalyzeRequest):
         
     except Exception as e:
         logger.error(f"Unexpected error in analyze_reports: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal server error: {str(e)}"
+        )
+
+
+@app.post("/analyze-pdf")
+async def analyze_reports_pdf(request: AnalyzeRequest):
+    """
+    Analyze credit reports and return PDF files.
+    
+    This endpoint performs credit analysis and returns PDF reports.
+    Each PDF is base64 encoded for easy transmission.
+    
+    Example request:
+    ```json
+    {
+        "urls": [
+            "https://example.com/report1.html",
+            "https://example.com/report2.html"
+        ]
+    }
+    ```
+    
+    Returns array of objects with:
+    - url: The source URL
+    - pdf_base64: Base64-encoded PDF file (or null if error)
+    - client_name: Name of the client (for reference)
+    - filename: Suggested filename for the PDF
+    - error: Error message (if applicable)
+    
+    Example response:
+    ```json
+    [
+        {
+            "url": "https://example.com/report1.html",
+            "pdf_base64": "JVBERi0xLjQKJeLjz9...",
+            "client_name": "JOHN DOE",
+            "filename": "JOHN_DOE_credit_report.pdf"
+        }
+    ]
+    ```
+    """
+    urls = request.urls
+    logger.info(f"Received PDF analysis request for {len(urls)} URL(s)")
+    
+    try:
+        # Step 1: Get JSON analysis results
+        fetch_results = await fetch_multiple_html(urls)
+        
+        analysis_tasks = []
+        results = []
+        
+        for fetch_result in fetch_results:
+            if fetch_result['status'] == 'success':
+                task = analyze_single_report(
+                    fetch_result['url'],
+                    fetch_result['html_content']
+                )
+                analysis_tasks.append(task)
+            else:
+                results.append({
+                    "error": fetch_result.get('error', 'Unknown fetch error'),
+                    "url": fetch_result['url']
+                })
+        
+        if analysis_tasks:
+            analysis_results = await asyncio.gather(*analysis_tasks)
+            results.extend(analysis_results)
+        
+        # Step 2: Render HTML for each successful analysis
+        logger.info(f"Rendering {len(results)} HTML report(s)...")
+        html_results = html_renderer.render_multiple(results)
+        
+        # Step 3: Convert each HTML to PDF
+        logger.info(f"Converting {len(html_results)} report(s) to PDF...")
+        pdf_results = []
+        
+        for html_result in html_results:
+            if 'error' in html_result:
+                # Pass through errors
+                pdf_results.append(html_result)
+            elif 'html' in html_result:
+                try:
+                    client_name = html_result.get('client_name', 'Unknown')
+                    
+                    # Generate PDF
+                    pdf_bytes = await pdf_generator.html_string_to_pdf(
+                        html_result['html'],
+                        client_name
+                    )
+                    
+                    # Encode to base64 for JSON transmission
+                    import base64
+                    pdf_base64 = base64.b64encode(pdf_bytes).decode('utf-8')
+                    
+                    # Clean filename
+                    safe_name = client_name.replace(' ', '_').replace('/', '_')
+                    filename = f"{safe_name}_credit_report.pdf"
+                    
+                    pdf_results.append({
+                        'url': html_result.get('url', 'unknown'),
+                        'pdf_base64': pdf_base64,
+                        'client_name': client_name,
+                        'filename': filename,
+                        'size_bytes': len(pdf_bytes)
+                    })
+                    
+                    logger.info(f"Generated PDF for {client_name}: {len(pdf_bytes):,} bytes")
+                    
+                except Exception as e:
+                    logger.error(f"PDF generation failed for {client_name}: {e}")
+                    pdf_results.append({
+                        'url': html_result.get('url', 'unknown'),
+                        'error': f'PDF generation failed: {str(e)}',
+                        'client_name': html_result.get('client_name', 'Unknown')
+                    })
+            else:
+                pdf_results.append({
+                    'url': html_result.get('url', 'unknown'),
+                    'error': 'Unexpected result format'
+                })
+        
+        logger.info(f"PDF generation complete: {len(pdf_results)} results")
+        return pdf_results
+        
+    except Exception as e:
+        logger.error(f"Unexpected error in analyze_reports_pdf: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail=f"Internal server error: {str(e)}"

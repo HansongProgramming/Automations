@@ -13,24 +13,25 @@ TEST_URLS = [
     "https://api.boshhhfintech.com/File/CreditReport/70f05ac1-4806-4d37-afed-52630f845d65?Auth=ce39264e377782c82ed70d69d405eea6e9471c679bb18cbf814f5db483ada838",
 ]
 
-def test_html_endpoint():
-    """Test the /analyze-html endpoint"""
+def test_pdf_endpoint():
+    """Test the /analyze-pdf endpoint"""
     
-    print("🚀 Testing HTML Report Generation")
+    print("🚀 Testing PDF Report Generation")
     print("=" * 60)
     
     # Create output directory
-    output_dir = Path("html_reports")
+    output_dir = Path("pdf_reports")
     output_dir.mkdir(exist_ok=True)
     
     # Make request
-    print(f"\n📡 Sending request for {len(TEST_URLS)} reports...")
+    print(f"\n📡 Sending request for {len(TEST_URLS)} PDF reports...")
+    print("⏳ This may take a while (rendering + PDF conversion)...")
     
     try:
         response = requests.post(
-            "http://localhost:8000/analyze-html",
+            "http://localhost:8000/analyze-pdf",
             json={"urls": TEST_URLS},
-            timeout=300  # 5 minutes timeout
+            timeout=600  # 10 minutes timeout (PDF generation is slower)
         )
         response.raise_for_status()
         
@@ -41,6 +42,7 @@ def test_html_endpoint():
         # Process each result
         success_count = 0
         error_count = 0
+        total_size = 0
         
         for i, result in enumerate(results, 1):
             print(f"\n📄 Report {i}/{len(results)}")
@@ -51,20 +53,23 @@ def test_html_endpoint():
                 print(f"   URL: {result.get('url', 'unknown')}")
                 error_count += 1
                 
-            elif 'html' in result:
+            elif 'pdf_base64' in result:
                 client_name = result.get('client_name', f'unknown_{i}')
+                filename = result.get('filename', f'{client_name}.pdf')
                 
-                # Clean filename
-                safe_name = client_name.replace(' ', '_').replace('/', '_')
-                filename = output_dir / f"{safe_name}_report.html"
+                # Decode base64 and save PDF
+                pdf_bytes = base64.b64decode(result['pdf_base64'])
+                pdf_path = output_dir / filename
                 
-                # Save HTML
-                with open(filename, 'w', encoding='utf-8') as f:
-                    f.write(result['html'])
+                with open(pdf_path, 'wb') as f:
+                    f.write(pdf_bytes)
+                
+                file_size = len(pdf_bytes)
+                total_size += file_size
                 
                 print(f"✅ Client: {client_name}")
-                print(f"   Saved: {filename}")
-                print(f"   Size: {len(result['html']):,} bytes")
+                print(f"   Saved: {pdf_path}")
+                print(f"   Size: {file_size:,} bytes ({file_size/1024:.1f} KB)")
                 success_count += 1
             
             else:
@@ -79,55 +84,118 @@ def test_html_endpoint():
         print(f"✅ Successful: {success_count}")
         print(f"❌ Errors: {error_count}")
         print(f"📁 Output directory: {output_dir.absolute()}")
+        print(f"💾 Total size: {total_size:,} bytes ({total_size/1024/1024:.2f} MB)")
         
         if success_count > 0:
-            print(f"\n💡 Open the HTML files in your browser to view the reports!")
+            avg_size = total_size / success_count
+            print(f"📏 Average PDF size: {avg_size:,.0f} bytes ({avg_size/1024:.1f} KB)")
+            print(f"\n💡 Open the PDF files to view the reports!")
+        
+    except requests.exceptions.Timeout:
+        print(f"\n❌ Request timeout - PDF generation takes longer than expected")
+        print("   Try reducing the number of URLs or increase the timeout")
         
     except requests.exceptions.RequestException as e:
         print(f"\n❌ Request failed: {e}")
-        print("\n💡 Make sure the server is running:")
-        print("   uvicorn app.main:app --reload")
-        
-    except json.JSONDecodeError as e:
-        print(f"\n❌ Invalid JSON response: {e}")
-        print(f"   Response text: {response.text[:200]}")
+        print("\n💡 Make sure:")
+        print("   1. Server is running: uvicorn app.main:app --reload")
+        print("   2. Playwright is installed: playwright install chromium")
         
     except Exception as e:
         print(f"\n❌ Unexpected error: {e}")
         raise
 
 
-def test_json_endpoint():
-    """Test that the original /analyze endpoint still works"""
+def test_single_pdf():
+    """Test with a single URL for faster testing"""
     
-    print("\n\n🔄 Testing Original JSON Endpoint")
+    print("\n\n🔬 Quick Test: Single PDF")
     print("=" * 60)
     
     try:
         response = requests.post(
-            "http://localhost:8000/analyze",
-            json={"urls": TEST_URLS[:1]},  # Test with just one URL
-            timeout=120
+            "http://localhost:8000/analyze-pdf",
+            json={"urls": [TEST_URLS[0]]},
+            timeout=300
         )
         response.raise_for_status()
         
         results = response.json()
+        result = results[0]
         
-        print(f"✅ JSON endpoint working")
-        print(f"   Results: {len(results)}")
-        print(f"   First result keys: {list(results[0].keys())}")
-        
-        # Save sample JSON
-        with open("sample_json_output.json", 'w', encoding='utf-8') as f:
-            json.dump(results, f, indent=2)
-        print(f"   Saved sample: sample_json_output.json")
-        
+        if 'pdf_base64' in result:
+            # Save the PDF
+            pdf_bytes = base64.b64decode(result['pdf_base64'])
+            test_path = Path("quick_test.pdf")
+            
+            with open(test_path, 'wb') as f:
+                f.write(pdf_bytes)
+            
+            print(f"✅ Quick test successful!")
+            print(f"   Client: {result['client_name']}")
+            print(f"   File: {test_path}")
+            print(f"   Size: {len(pdf_bytes):,} bytes")
+        else:
+            print(f"❌ Error: {result.get('error')}")
+            
     except Exception as e:
-        print(f"❌ JSON endpoint test failed: {e}")
+        print(f"❌ Quick test failed: {e}")
+
+
+def compare_endpoints():
+    """Compare performance of HTML vs PDF endpoints"""
+    
+    print("\n\n⚡ Performance Comparison")
+    print("=" * 60)
+    
+    import time
+    
+    # Test HTML endpoint
+    print("\n📊 Testing HTML endpoint...")
+    start = time.time()
+    try:
+        response = requests.post(
+            "http://localhost:8000/analyze-html",
+            json={"urls": [TEST_URLS[0]]},
+            timeout=120
+        )
+        html_time = time.time() - start
+        print(f"✅ HTML generation: {html_time:.2f}s")
+    except Exception as e:
+        print(f"❌ HTML test failed: {e}")
+        html_time = None
+    
+    # Test PDF endpoint
+    print("\n📄 Testing PDF endpoint...")
+    start = time.time()
+    try:
+        response = requests.post(
+            "http://localhost:8000/analyze-pdf",
+            json={"urls": [TEST_URLS[0]]},
+            timeout=300
+        )
+        pdf_time = time.time() - start
+        print(f"✅ PDF generation: {pdf_time:.2f}s")
+    except Exception as e:
+        print(f"❌ PDF test failed: {e}")
+        pdf_time = None
+    
+    # Summary
+    if html_time and pdf_time:
+        print(f"\n📈 Performance:")
+        print(f"   HTML: {html_time:.2f}s")
+        print(f"   PDF:  {pdf_time:.2f}s")
+        print(f"   Overhead: {pdf_time - html_time:.2f}s ({(pdf_time/html_time - 1)*100:.0f}% slower)")
 
 
 if __name__ == "__main__":
-    test_html_endpoint()
-    test_json_endpoint()
+    # Run quick test first
+    test_single_pdf()
+    
+    # Then full test
+    test_pdf_endpoint()
+    
+    # Optional: performance comparison
+    # compare_endpoints()
     
     print("\n\n✨ Testing complete!")
