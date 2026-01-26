@@ -248,8 +248,9 @@ class CreditReportAnalyzer:
         self.severe_codes = ['D', 'R', 'W', 'V']
         
     def parse_ccj_data(self) -> List[Dict[str, Any]]:
-        """Extract County Court Judgement (CCJ) data"""
+        """Extract County Court Judgement (CCJ) data with deduplication"""
         ccjs = []
+        seen_cases = set()  # Track case numbers to avoid duplicates
         content = self.soup.get_text()
         
         # Find the Public Records section
@@ -294,15 +295,17 @@ class CreditReportAnalyzer:
                 except:
                     ccj_data['amount'] = 0
             
-            # Only add if we found a case number
-            if ccj_data.get('case_number'):
+            # Only add if we found a case number AND it's not a duplicate
+            case_num = ccj_data.get('case_number')
+            if case_num and case_num not in seen_cases:
                 ccjs.append(ccj_data)
+                seen_cases.add(case_num)
         
         return ccjs
     
     def parse_credit_accounts(self) -> List[Dict[str, Any]]:
-        """Extract all credit account information"""
-        accounts = []
+        """Extract all credit account information with deduplication"""
+        seen_accounts = {}  # Track by account number to merge duplicates
         content = self.soup.get_text()
         
         # Split by account type headers
@@ -371,8 +374,45 @@ class CreditReportAnalyzer:
                 
                 account_data['payment_history'] = payment_history
                 
-                if account_data.get('Account Number'):
-                    accounts.append(account_data)
+                # Check if we have a valid account number
+                account_num = account_data.get('Account Number')
+                if account_num:
+                    # Check if this account already exists
+                    if account_num in seen_accounts:
+                        # Merge with existing entry
+                        existing = seen_accounts[account_num]
+                        
+                        # Merge payment histories (combine and deduplicate by year/month)
+                        existing_payments = {(p['year'], p['month']): p for p in existing.get('payment_history', [])}
+                        new_payments = {(p['year'], p['month']): p for p in payment_history}
+                        
+                        # Combine both payment histories
+                        combined_payments = {**existing_payments, **new_payments}
+                        existing['payment_history'] = sorted(
+                            combined_payments.values(), 
+                            key=lambda x: (x['year'], x['month'])
+                        )
+                        
+                        # Update other fields - prefer non-empty, non-N/A values
+                        for key, value in account_data.items():
+                            if key == 'payment_history':
+                                continue  # Already handled above
+                            
+                            existing_value = existing.get(key)
+                            
+                            # Update if existing is missing/empty/N/A and new value is better
+                            if not existing_value or existing_value in ['N/A', '£0', '£N/A']:
+                                if value and value not in ['N/A', '£0', '£N/A']:
+                                    existing[key] = value
+                            # Special case: if existing has N/A default but new has actual date
+                            elif key == 'Default Date' and existing_value == 'N/A' and value != 'N/A':
+                                existing[key] = value
+                    else:
+                        # New account - add to tracking
+                        seen_accounts[account_num] = account_data
+        
+        # Convert dict to list
+        accounts = list(seen_accounts.values())
         
         return accounts
     
@@ -619,9 +659,10 @@ class CreditReportAnalyzer:
             "ZABLE", "INDIGO", "OCEAN", "PROVIDENT", "MORSES"
         ]
         
-        # Account types that are not lending decisions
-        NON_LENDING_TYPES = [
-            "Current Account", "Comms Supply Account"
+        # Account types that are NOT credit agreements (no lending decision)
+        NON_CREDIT_TYPES = [
+            "Current Account",          # Banking facility, not credit
+            "Comms Supply Account"      # Phone/utility contract, not credit
         ]
         
         in_scope = []
@@ -670,10 +711,6 @@ class CreditReportAnalyzer:
                     'arrears_months': arrears_count
                 })
             
-            # Determine if out of scope
-            is_debt_collector = any(keyword in lender for keyword in DEBT_COLLECTORS)
-            is_non_lending = account_type in NON_LENDING_TYPES
-            
             # Build account summary
             account_summary = {
                 'lender': lender,
@@ -691,20 +728,24 @@ class CreditReportAnalyzer:
                 }
             }
             
+            # Determine exclusion reason (priority order matters)
+            is_debt_collector = any(keyword in lender for keyword in DEBT_COLLECTORS)
+            is_non_credit = account_type in NON_CREDIT_TYPES
+            
             if is_debt_collector:
-                # Out of scope - debt purchaser/collector
+                # Out of scope - debt purchaser/collector (HIGHEST PRIORITY)
                 out_of_scope.append({
                     **account_summary,
                     'exclusion_reason': 'debt_collector',
                     'notes': 'Not original lender - debt purchaser/collection agency'
                 })
             
-            elif is_non_lending:
-                # Out of scope - not a lending decision
+            elif is_non_credit:
+                # Out of scope - not a credit agreement
                 out_of_scope.append({
                     **account_summary,
                     'exclusion_reason': 'no_lending_decision',
-                    'notes': 'Account type does not involve credit lending decision'
+                    'notes': f'{account_type} is not a credit agreement - FCA irresponsible lending rules do not apply'
                 })
             
             else:
