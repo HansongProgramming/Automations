@@ -6,9 +6,7 @@ beautifulsoup4==4.12.2
 aiohttp==3.9.1
 python-multipart==0.0.6
 lxml
-openai
 weasyprint
 python-dotenv
 jinja2
-weasyprint
 Pillow

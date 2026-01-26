@@ -1,10 +1,12 @@
 """
-Test script for HTML report generation
-Run this after setting up the new endpoint
+Test script for PDF report generation
+Run this after setting up the PDF endpoint
 """
 import requests
 import json
+import base64  # MISSING IMPORT - ADDED
 from pathlib import Path
+import time
 
 # Your test URLs
 TEST_URLS = [
@@ -25,13 +27,13 @@ def test_pdf_endpoint():
     
     # Make request
     print(f"\n📡 Sending request for {len(TEST_URLS)} PDF reports...")
-    print("⏳ This may take a while (rendering + PDF conversion)...")
+    print("⏳ Processing...")
     
     try:
         response = requests.post(
             "http://localhost:8000/analyze-pdf",
             json={"urls": TEST_URLS},
-            timeout=600  # 10 minutes timeout (PDF generation is slower)
+            timeout=300  # 5 minutes timeout
         )
         response.raise_for_status()
         
@@ -50,7 +52,7 @@ def test_pdf_endpoint():
             
             if 'error' in result:
                 print(f"❌ Error: {result['error']}")
-                print(f"   URL: {result.get('url', 'unknown')}")
+                print(f"   URL: {result.get('url', 'unknown')[:80]}...")
                 error_count += 1
                 
             elif 'pdf_base64' in result:
@@ -92,18 +94,19 @@ def test_pdf_endpoint():
             print(f"\n💡 Open the PDF files to view the reports!")
         
     except requests.exceptions.Timeout:
-        print(f"\n❌ Request timeout - PDF generation takes longer than expected")
+        print(f"\n❌ Request timeout")
         print("   Try reducing the number of URLs or increase the timeout")
         
     except requests.exceptions.RequestException as e:
         print(f"\n❌ Request failed: {e}")
         print("\n💡 Make sure:")
         print("   1. Server is running: uvicorn app.main:app --reload")
-        print("   2. Playwright is installed: playwright install chromium")
+        print("   2. Server is accessible at http://localhost:8000")
         
     except Exception as e:
         print(f"\n❌ Unexpected error: {e}")
-        raise
+        import traceback
+        traceback.print_exc()
 
 
 def test_single_pdf():
@@ -113,13 +116,16 @@ def test_single_pdf():
     print("=" * 60)
     
     try:
+        start_time = time.time()
+        
         response = requests.post(
             "http://localhost:8000/analyze-pdf",
             json={"urls": [TEST_URLS[0]]},
-            timeout=300
+            timeout=120
         )
         response.raise_for_status()
         
+        elapsed = time.time() - start_time
         results = response.json()
         result = results[0]
         
@@ -134,12 +140,15 @@ def test_single_pdf():
             print(f"✅ Quick test successful!")
             print(f"   Client: {result['client_name']}")
             print(f"   File: {test_path}")
-            print(f"   Size: {len(pdf_bytes):,} bytes")
+            print(f"   Size: {len(pdf_bytes):,} bytes ({len(pdf_bytes)/1024:.1f} KB)")
+            print(f"   Time: {elapsed:.2f}s")
         else:
             print(f"❌ Error: {result.get('error')}")
             
     except Exception as e:
         print(f"❌ Quick test failed: {e}")
+        import traceback
+        traceback.print_exc()
 
 
 def compare_endpoints():
@@ -147,8 +156,6 @@ def compare_endpoints():
     
     print("\n\n⚡ Performance Comparison")
     print("=" * 60)
-    
-    import time
     
     # Test HTML endpoint
     print("\n📊 Testing HTML endpoint...")
@@ -159,6 +166,7 @@ def compare_endpoints():
             json={"urls": [TEST_URLS[0]]},
             timeout=120
         )
+        response.raise_for_status()
         html_time = time.time() - start
         print(f"✅ HTML generation: {html_time:.2f}s")
     except Exception as e:
@@ -172,8 +180,9 @@ def compare_endpoints():
         response = requests.post(
             "http://localhost:8000/analyze-pdf",
             json={"urls": [TEST_URLS[0]]},
-            timeout=300
+            timeout=120
         )
+        response.raise_for_status()
         pdf_time = time.time() - start
         print(f"✅ PDF generation: {pdf_time:.2f}s")
     except Exception as e:
@@ -182,13 +191,17 @@ def compare_endpoints():
     
     # Summary
     if html_time and pdf_time:
+        overhead = pdf_time - html_time
+        percent = ((pdf_time / html_time) - 1) * 100
         print(f"\n📈 Performance:")
         print(f"   HTML: {html_time:.2f}s")
         print(f"   PDF:  {pdf_time:.2f}s")
-        print(f"   Overhead: {pdf_time - html_time:.2f}s ({(pdf_time/html_time - 1)*100:.0f}% slower)")
+        print(f"   PDF Overhead: +{overhead:.2f}s ({percent:.0f}% slower)")
 
 
 if __name__ == "__main__":
+    print("🧪 Starting PDF Generation Tests\n")
+    
     # Run quick test first
     test_single_pdf()
     
@@ -196,6 +209,7 @@ if __name__ == "__main__":
     test_pdf_endpoint()
     
     # Optional: performance comparison
+    # Uncomment to run:
     # compare_endpoints()
     
     print("\n\n✨ Testing complete!")

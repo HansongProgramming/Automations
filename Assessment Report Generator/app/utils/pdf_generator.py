@@ -1,27 +1,15 @@
-from weasyprint import HTML, CSS
+import asyncio
+import sys
+from playwright.async_api import async_playwright
 from pathlib import Path
 import tempfile
 import logging
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
 
 class PDFGenerator:
-    """Converts HTML content to PDF using WeasyPrint (VPS-friendly)"""
-    
-    def __init__(self):
-        # Optional: Add custom CSS for better PDF rendering
-        self.base_css = CSS(string='''
-            @page {
-                size: A4;
-                margin: 0;
-            }
-            body {
-                margin: 0;
-                padding: 0;
-            }
-        ''')
+    """Converts HTML to pixel-perfect PDF using Playwright"""
     
     async def html_string_to_pdf(
         self, 
@@ -29,7 +17,7 @@ class PDFGenerator:
         client_name: str = "report"
     ) -> bytes:
         """
-        Convert HTML string directly to PDF bytes.
+        Convert HTML string to PDF with pixel-perfect rendering.
         
         Args:
             html_content: The HTML string to convert
@@ -39,44 +27,50 @@ class PDFGenerator:
             PDF file as bytes
         """
         try:
-            # WeasyPrint can work directly with HTML strings
-            html = HTML(string=html_content)
+            # Create temp HTML file
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False, encoding='utf-8') as f:
+                f.write(html_content)
+                html_path = f.name
             
-            # Generate PDF to bytes
-            pdf_bytes = html.write_pdf(stylesheets=[self.base_css])
-            
-            logger.info(f"Generated PDF for {client_name}: {len(pdf_bytes):,} bytes")
-            return pdf_bytes
-            
+            try:
+                # Generate PDF using Playwright
+                async with async_playwright() as p:
+                    browser = await p.chromium.launch(
+                        headless=True,
+                        args=['--no-sandbox', '--disable-setuid-sandbox']
+                    )
+                    
+                    page = await browser.new_page()
+                    
+                    # Load HTML
+                    file_url = Path(html_path).as_uri()
+                    await page.goto(file_url)
+                    await page.wait_for_load_state('networkidle')
+                    
+                    # Generate PDF with print settings
+                    pdf_bytes = await page.pdf(
+                        format='A4',
+                        print_background=True,
+                        margin={
+                            'top': '0',
+                            'right': '0',
+                            'bottom': '0',
+                            'left': '0'
+                        },
+                        prefer_css_page_size=False
+                    )
+                    
+                    await browser.close()
+                
+                logger.info(f"Generated PDF for {client_name}: {len(pdf_bytes):,} bytes")
+                return pdf_bytes
+                
+            finally:
+                # Clean up temp file
+                Path(html_path).unlink(missing_ok=True)
+                
         except Exception as e:
-            logger.error(f"Error generating PDF for {client_name}: {e}", exc_info=True)
-            raise
-    
-    def html_string_to_pdf_sync(
-        self, 
-        html_content: str, 
-        client_name: str = "report"
-    ) -> bytes:
-        """
-        Synchronous version - WeasyPrint doesn't need async.
-        Use this if you want to avoid the async wrapper.
-        
-        Args:
-            html_content: The HTML string to convert
-            client_name: Name for logging purposes
-            
-        Returns:
-            PDF file as bytes
-        """
-        try:
-            html = HTML(string=html_content)
-            pdf_bytes = html.write_pdf(stylesheets=[self.base_css])
-            
-            logger.info(f"Generated PDF for {client_name}: {len(pdf_bytes):,} bytes")
-            return pdf_bytes
-            
-        except Exception as e:
-            logger.error(f"Error generating PDF for {client_name}: {e}", exc_info=True)
+            logger.error(f"Error generating PDF for {client_name}:", exc_info=True)
             raise
 
 

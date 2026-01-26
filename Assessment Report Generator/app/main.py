@@ -4,6 +4,10 @@ from fastapi.responses import JSONResponse, Response
 import asyncio
 from typing import List, Dict, Any
 import logging
+import sys
+
+if sys.platform == 'win32':
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 from .models import AnalyzeRequest, AnalyzeResponse, SingleReportResult
 from .utils.html_fetcher import fetch_multiple_html
@@ -229,7 +233,7 @@ async def analyze_reports_pdf(request: AnalyzeRequest):
                 try:
                     client_name = html_result.get('client_name', 'Unknown')
                     
-                    # Generate PDF
+                    # Generate PDF - AWAIT ADDED HERE
                     pdf_bytes = await pdf_generator.html_string_to_pdf(
                         html_result['html'],
                         client_name
