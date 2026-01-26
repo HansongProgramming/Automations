@@ -58,14 +58,27 @@ class AnalysisResult(BaseModel):
 
 
 class SingleReportResult(BaseModel):
-    """Result for a single URL"""
-    url: str
-    status: str
-    data: Optional[Dict[str, Any]] = None
+    """Result for a single URL - matches original output format"""
+    credit_analysis: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
+    url: Optional[str] = None
 
 
 class AnalyzeResponse(BaseModel):
-    """Response model for credit report analysis"""
-    results: List[SingleReportResult]
-    summary: Dict[str, int]
+    """Response model - returns array of credit analysis results"""
+    
+    class Config:
+        # Allow this to be a plain list
+        schema_extra = {
+            "example": [
+                {
+                    "credit_analysis": {
+                        "client_info": {},
+                        "indicators": {},
+                        "total_points": 95,
+                        "traffic_light": "GREEN",
+                        "claims_analysis": {}
+                    }
+                }
+            ]
+        }

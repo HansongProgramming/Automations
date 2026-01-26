@@ -25,50 +25,46 @@ def test_single_url():
         response = requests.post(API_URL, json=payload, timeout=60)
         response.raise_for_status()
         
-        result = response.json()
+        results = response.json()
         
         print("\n✅ SUCCESS!")
-        print(f"\n📊 Summary:")
-        print(f"  Total: {result['summary']['total']}")
-        print(f"  Successful: {result['summary']['successful']}")
-        print(f"  Failed: {result['summary']['failed']}")
+        print(f"\n📊 Received {len(results)} result(s)")
         
         # Print first result details
-        if result['results']:
-            first_result = result['results'][0]
-            print(f"\n📋 First Result:")
-            print(f"  Status: {first_result['status']}")
+        if results:
+            first_result = results[0]
             
-            if first_result['status'] == 'success':
-                data = first_result['data']
-                print(f"\n👤 Client Info:")
-                print(f"  Name: {data['client_info']['name']}")
-                print(f"  Address: {data['client_info']['address']}")
+            if 'error' in first_result:
+                print(f"\n❌ Error: {first_result['error']}")
+            elif 'credit_analysis' in first_result:
+                analysis = first_result['credit_analysis']
                 
-                print(f"\n🚦 Traffic Light: {data['traffic_light']}")
-                print(f"  Total Points: {data['total_points']}")
+                print(f"\n👤 Client Info:")
+                print(f"  Name: {analysis['client_info']['name']}")
+                print(f"  Address: {analysis['client_info']['address']}")
+                
+                print(f"\n🚦 Traffic Light: {analysis['traffic_light']}")
+                print(f"  Total Points: {analysis['total_points']}")
                 
                 print(f"\n📈 Indicators:")
-                for indicator, details in data['indicators'].items():
+                for indicator, details in analysis['indicators'].items():
                     if details['flagged']:
                         print(f"  ⚠️  {indicator}: {details['points']} points")
                 
                 print(f"\n💼 Claims Analysis:")
-                print(f"  In-scope accounts: {len(data['claims_analysis']['in_scope'])}")
-                print(f"  Out-of-scope accounts: {len(data['claims_analysis']['out_of_scope'])}")
+                print(f"  In-scope accounts: {len(analysis['claims_analysis']['in_scope'])}")
+                print(f"  Out-of-scope accounts: {len(analysis['claims_analysis']['out_of_scope'])}")
                 
                 # Show first in-scope account if any
-                if data['claims_analysis']['in_scope']:
-                    first_account = data['claims_analysis']['in_scope'][0]
+                if analysis['claims_analysis']['in_scope']:
+                    first_account = analysis['claims_analysis']['in_scope'][0]
                     print(f"\n  Example in-scope account:")
                     print(f"    Lender: {first_account['name']}")
                     print(f"    Title: {first_account['title']}")
-            else:
-                print(f"  Error: {first_result.get('error', 'Unknown error')}")
         
         # Save full JSON to file
         with open('test_result.json', 'w') as f:
-            json.dump(result, indent=2, fp=f)
+            json.dump(results, indent=2, fp=f)
         print(f"\n💾 Full result saved to: test_result.json")
         
     except requests.exceptions.ConnectionError:
@@ -100,14 +96,18 @@ def test_multiple_urls():
         response = requests.post(API_URL, json=payload, timeout=120)
         response.raise_for_status()
         
-        result = response.json()
+        results = response.json()
         
-        print(f"\n✅ Processed {result['summary']['total']} reports")
-        print(f"  Successful: {result['summary']['successful']}")
-        print(f"  Failed: {result['summary']['failed']}")
+        print(f"\n✅ Processed {len(results)} report(s)")
+        
+        successful = sum(1 for r in results if 'credit_analysis' in r)
+        failed = len(results) - successful
+        
+        print(f"  Successful: {successful}")
+        print(f"  Failed: {failed}")
         
         with open('test_multiple_results.json', 'w') as f:
-            json.dump(result, indent=2, fp=f)
+            json.dump(results, indent=2, fp=f)
         print(f"\n💾 Results saved to: test_multiple_results.json")
         
     except Exception as e:

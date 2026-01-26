@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import asyncio
-from typing import List
+from typing import List, Dict, Any
 import logging
 
 from .models import AnalyzeRequest, AnalyzeResponse, SingleReportResult
@@ -33,7 +33,7 @@ app.add_middleware(
 )
 
 
-async def analyze_single_report(url: str, html_content: str) -> SingleReportResult:
+async def analyze_single_report(url: str, html_content: str) -> Dict[str, Any]:
     """
     Analyze a single credit report.
     
@@ -42,24 +42,21 @@ async def analyze_single_report(url: str, html_content: str) -> SingleReportResu
         html_content: The HTML content to analyze
         
     Returns:
-        SingleReportResult with analysis data or error
+        Dict with credit_analysis or error
     """
     try:
         analyzer = CreditReportAnalyzer(html_content)
         result = analyzer.analyze()
         
-        return SingleReportResult(
-            url=url,
-            status="success",
-            data=result
-        )
+        return {
+            "credit_analysis": result
+        }
     except Exception as e:
         logger.error(f"Error analyzing {url}: {str(e)}", exc_info=True)
-        return SingleReportResult(
-            url=url,
-            status="error",
-            error=f"Analysis failed: {str(e)}"
-        )
+        return {
+            "error": f"Analysis failed: {str(e)}",
+            "url": url
+        }
 
 
 @app.get("/")
@@ -81,7 +78,7 @@ async def health():
     }
 
 
-@app.post("/analyze", response_model=AnalyzeResponse)
+@app.post("/analyze")
 async def analyze_reports(request: AnalyzeRequest):
     """
     Analyze one or more credit reports from URLs.
@@ -98,7 +95,7 @@ async def analyze_reports(request: AnalyzeRequest):
     }
     ```
     
-    Returns analysis results for each URL with success/error status.
+    Returns array of credit analysis results matching original format.
     """
     urls = request.urls
     logger.info(f"Received analysis request for {len(urls)} URL(s)")
@@ -110,7 +107,7 @@ async def analyze_reports(request: AnalyzeRequest):
         
         # Step 2: Process successful fetches
         analysis_tasks = []
-        failed_fetches = []
+        results = []
         
         for fetch_result in fetch_results:
             if fetch_result['status'] == 'success':
@@ -121,36 +118,22 @@ async def analyze_reports(request: AnalyzeRequest):
                 analysis_tasks.append(task)
             else:
                 # Record failed fetch
-                failed_fetches.append(SingleReportResult(
-                    url=fetch_result['url'],
-                    status='error',
-                    error=fetch_result.get('error', 'Unknown fetch error')
-                ))
+                results.append({
+                    "error": fetch_result.get('error', 'Unknown fetch error'),
+                    "url": fetch_result['url']
+                })
         
         # Step 3: Analyze all successfully fetched reports concurrently
         logger.info(f"Analyzing {len(analysis_tasks)} report(s)...")
-        analysis_results = []
         
         if analysis_tasks:
             analysis_results = await asyncio.gather(*analysis_tasks)
+            results.extend(analysis_results)
         
-        # Step 4: Combine all results
-        all_results = failed_fetches + list(analysis_results)
+        logger.info(f"Analysis complete: {len(results)} total results")
         
-        # Step 5: Generate summary
-        successful = sum(1 for r in all_results if r.status == 'success')
-        failed = len(all_results) - successful
-        
-        logger.info(f"Analysis complete: {successful} successful, {failed} failed")
-        
-        return AnalyzeResponse(
-            results=all_results,
-            summary={
-                'total': len(all_results),
-                'successful': successful,
-                'failed': failed
-            }
-        )
+        # Return as plain array matching original format
+        return results
         
     except Exception as e:
         logger.error(f"Unexpected error in analyze_reports: {str(e)}", exc_info=True)
