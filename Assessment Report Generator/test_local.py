@@ -7,7 +7,13 @@ import requests
 import json
 
 # Your test URL
-TEST_URL = "https://api.boshhhfintech.com/File/CreditReport/70f05ac1-4806-4d37-afed-52630f845d65?Auth=ce39264e377782c82ed70d69d405eea6e9471c679bb18cbf814f5db483ada838"
+TEST_URLS = [
+    "https://api.boshhhfintech.com/File/CreditReport/95d1ce7e-2c3c-49d5-a303-6a4727f91005?Auth=af26383640b084af4d2895307480ed795c334405b786d7419d78be541fcc0656",
+    "https://api.boshhhfintech.com/File/CreditReport/e5f86646-9227-4f4e-839e-5a3437b36a45?Auth=72372a1d2fb8b8e5c78b3d4096a53b853dc22422676f789fc888986b82847cf1",
+    "https://api.boshhhfintech.com/File/CreditReport/70f05ac1-4806-4d37-afed-52630f845d65?Auth=ce39264e377782c82ed70d69d405eea6e9471c679bb18cbf814f5db483ada838",
+    "https://api.boshhhfintech.com/File/CreditReport/193db969-faaf-4eb0-8cc3-b35ad5d7085d?Auth=673f48f1399a4bdad4a66f3ed01db9ce620754375f9a19f579aa43888095d4db",
+    "https://api.boshhhfintech.com/File/CreditReport/d2584f54-e597-44cc-a87c-92d252dbfbdb?Auth=7c76a1aa73f2df04cbe9d374db273ca2d1c1fd21abb5733b01e9db183699fb2e"
+]
 
 # API endpoint (local)
 API_URL = "http://localhost:8000/analyze"
@@ -15,12 +21,11 @@ API_URL = "http://localhost:8000/analyze"
 def test_single_url():
     """Test with a single URL"""
     print("🧪 Testing with single URL...")
-    print(f"📄 Report URL: {TEST_URL[:80]}...")
+    print(f"📄 Report URL: {TEST_URLS[:80]}...")
     
-    payload = {
-        "urls": [TEST_URL]
-    }
-    
+    payload = {"urls": TEST_URLS}
+
+
     try:
         response = requests.post(API_URL, json=payload, timeout=60)
         response.raise_for_status()
@@ -86,7 +91,7 @@ def test_multiple_urls():
     
     payload = {
         "urls": [
-            TEST_URL,
+            TEST_URLS,
             # Add more URLs here to test concurrent processing
             # "https://api.boshhhfintech.com/File/CreditReport/another-id?Auth=...",
         ]
