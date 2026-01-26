@@ -8,6 +8,7 @@ import logging
 from .models import AnalyzeRequest, AnalyzeResponse, SingleReportResult
 from .utils.html_fetcher import fetch_multiple_html
 from .analyzer.credit_analyzer import CreditReportAnalyzer
+from .utils.template_renderer import HTMLTemplateRenderer
 
 # Configure logging
 logging.basicConfig(
@@ -32,6 +33,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Initialize HTML template renderer
+html_renderer = HTMLTemplateRenderer()
+
 
 async def analyze_single_report(url: str, html_content: str) -> Dict[str, Any]:
     """
@@ -49,6 +53,7 @@ async def analyze_single_report(url: str, html_content: str) -> Dict[str, Any]:
         result = analyzer.analyze()
         
         return {
+            "url": url,
             "credit_analysis": result
         }
     except Exception as e:
@@ -137,6 +142,89 @@ async def analyze_reports(request: AnalyzeRequest):
         
     except Exception as e:
         logger.error(f"Unexpected error in analyze_reports: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal server error: {str(e)}"
+        )
+
+
+@app.post("/analyze-html")
+async def analyze_reports_html(request: AnalyzeRequest):
+    """
+    Analyze credit reports and return rendered HTML for each.
+    
+    This endpoint performs the same analysis as /analyze but returns
+    rendered HTML reports instead of JSON.
+    
+    Example request:
+    ```json
+    {
+        "urls": [
+            "https://example.com/report1.html",
+            "https://example.com/report2.html"
+        ]
+    }
+    ```
+    
+    Returns array of objects with:
+    - url: The source URL
+    - html: Rendered HTML report (or null if error)
+    - client_name: Name of the client (for reference)
+    - error: Error message (if applicable)
+    
+    Example response:
+    ```json
+    [
+        {
+            "url": "https://example.com/report1.html",
+            "html": "<!DOCTYPE html>...",
+            "client_name": "JOHN DOE"
+        },
+        {
+            "url": "https://example.com/report2.html",
+            "error": "Analysis failed: Invalid HTML"
+        }
+    ]
+    ```
+    """
+    urls = request.urls
+    logger.info(f"Received HTML analysis request for {len(urls)} URL(s)")
+    
+    try:
+        # Step 1: Get JSON analysis results
+        # We'll reuse the existing analyze logic
+        fetch_results = await fetch_multiple_html(urls)
+        
+        analysis_tasks = []
+        results = []
+        
+        for fetch_result in fetch_results:
+            if fetch_result['status'] == 'success':
+                task = analyze_single_report(
+                    fetch_result['url'],
+                    fetch_result['html_content']
+                )
+                analysis_tasks.append(task)
+            else:
+                results.append({
+                    "error": fetch_result.get('error', 'Unknown fetch error'),
+                    "url": fetch_result['url']
+                })
+        
+        if analysis_tasks:
+            analysis_results = await asyncio.gather(*analysis_tasks)
+            results.extend(analysis_results)
+        
+        # Step 2: Render HTML for each successful analysis
+        logger.info(f"Rendering {len(results)} HTML report(s)...")
+        html_results = html_renderer.render_multiple(results)
+        
+        logger.info(f"HTML rendering complete: {len(html_results)} reports")
+        
+        return html_results
+        
+    except Exception as e:
+        logger.error(f"Unexpected error in analyze_reports_html: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail=f"Internal server error: {str(e)}"

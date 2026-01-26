@@ -10,7 +10,7 @@ from openai_client import describe_images
 from config import START_KEYWORD, STOP_KEYWORD
 
 # Credit report analyzer imports
-from app import analyze_credit_report
+from misc.app import analyze_credit_report
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for n8n compatibility
