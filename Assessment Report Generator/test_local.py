@@ -31,7 +31,7 @@ def test_pdf_endpoint():
     
     try:
         response = requests.post(
-            "http://localhost:8000/analyze-pdf",
+            "http://localhost:8000/analyze",
             json={"urls": TEST_URLS},
             timeout=300  # 5 minutes timeout
         )

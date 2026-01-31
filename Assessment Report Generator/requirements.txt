@@ -23,3 +23,6 @@ Pillow==10.1.0
 
 # Configuration
 python-dotenv==1.0.0
+
+#Document handling
+python-docx
