@@ -255,11 +255,16 @@ class ClaimLetterGenerator:
             if old_text in full_text:
                 new_text_str = str(new_text) if new_text is not None else ''
                 
-                for i, run in enumerate(paragraph.runs):
-                    if i == 0:
-                        run.text = full_text.replace(old_text, new_text_str)
-                    else:
+                # Replace in full text
+                replaced_text = full_text.replace(old_text, new_text_str)
+                
+                # Clear all runs and put replaced text in first run
+                if paragraph.runs:
+                    paragraph.runs[0].text = replaced_text
+                    for run in paragraph.runs[1:]:
                         run.text = ''
+                else:
+                    paragraph.add_run(replaced_text)
     
     @staticmethod
     def replace_in_table(table, old_text: str, new_text: str):
@@ -271,35 +276,64 @@ class ClaimLetterGenerator:
     
     def replace_placeholders(self, doc: Document, replacements: Dict[str, str]):
         """Replace all placeholders in the document."""
+        import re
+        
+        # Create expanded replacements with various format variants
+        expanded_replacements = {}
+        
+        for key, value in replacements.items():
+            expanded_replacements[key] = value
+            
+            # Add lowercase variant
+            expanded_replacements[key.lower()] = value
+            
+            # Add variant without spaces inside braces
+            if ' ' in key:
+                expanded_replacements[key.replace(' ', '')] = value
+            
+            # Add variant with normalized spacing (single spaces)
+            normalized = re.sub(r'\s+', ' ', key).strip()
+            if normalized != key:
+                expanded_replacements[normalized] = value
+        
         # Replace in paragraphs
         for paragraph in doc.paragraphs:
-            for old_text, new_text in replacements.items():
+            for old_text, new_text in expanded_replacements.items():
                 self.replace_in_paragraph(paragraph, old_text, new_text)
         
         # Replace in tables
         for table in doc.tables:
-            for old_text, new_text in replacements.items():
-                self.replace_in_table(table, old_text, new_text)
+            for row in table.rows:
+                for cell in row.cells:
+                    for paragraph in cell.paragraphs:
+                        for old_text, new_text in expanded_replacements.items():
+                            self.replace_in_paragraph(paragraph, old_text, new_text)
         
         # Replace in headers and footers
         for section in doc.sections:
             for header in [section.header, section.first_page_header, section.even_page_header]:
                 if header:
                     for paragraph in header.paragraphs:
-                        for old_text, new_text in replacements.items():
+                        for old_text, new_text in expanded_replacements.items():
                             self.replace_in_paragraph(paragraph, old_text, new_text)
                     for table in header.tables:
-                        for old_text, new_text in replacements.items():
-                            self.replace_in_table(table, old_text, new_text)
+                        for row in table.rows:
+                            for cell in row.cells:
+                                for paragraph in cell.paragraphs:
+                                    for old_text, new_text in expanded_replacements.items():
+                                        self.replace_in_paragraph(paragraph, old_text, new_text)
             
             for footer in [section.footer, section.first_page_footer, section.even_page_footer]:
                 if footer:
                     for paragraph in footer.paragraphs:
-                        for old_text, new_text in replacements.items():
+                        for old_text, new_text in expanded_replacements.items():
                             self.replace_in_paragraph(paragraph, old_text, new_text)
                     for table in footer.tables:
-                        for old_text, new_text in replacements.items():
-                            self.replace_in_table(table, old_text, new_text)
+                        for row in table.rows:
+                            for cell in row.cells:
+                                for paragraph in cell.paragraphs:
+                                    for old_text, new_text in expanded_replacements.items():
+                                        self.replace_in_paragraph(paragraph, old_text, new_text)
     
     def generate_letter(self, output_path: str, credit_data: Dict[str, Any], 
                        in_scope_item: Dict[str, Any]) -> bool:
@@ -531,6 +565,7 @@ Examples:
     
     # Generate letters
     generator = ClaimLetterGenerator(args.template)
+    generator.analyze_template(args.template)
     generator.generate_all(args.json_input, args.output)
 
 
