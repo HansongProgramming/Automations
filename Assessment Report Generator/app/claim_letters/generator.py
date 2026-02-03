@@ -12,6 +12,7 @@ from pathlib import Path
 from docx import Document
 from typing import List, Dict, Any, Optional
 import argparse
+import re
 
 
 # Try to import config, fall back to defaults if not available
@@ -247,107 +248,134 @@ class ClaimLetterGenerator:
         return 'Address TBC'
     
     @staticmethod
-    def replace_in_paragraph(paragraph, old_text: str, new_text: str):
-        """Replace text in a paragraph while preserving formatting."""
-        # Check if placeholder is in paragraph text (handles extra whitespace)
-        if old_text in paragraph.text:
-            # Get full text by joining all runs
-            full_text = ''.join([run.text for run in paragraph.runs])
-            
-            if old_text in full_text:
-                new_text_str = str(new_text) if new_text is not None else ''
-                
-                # Replace the placeholder
-                replaced_text = full_text.replace(old_text, new_text_str)
-                
-                # Update runs - put all text in first run, clear others
-                if paragraph.runs:
-                    paragraph.runs[0].text = replaced_text
-                    for run in paragraph.runs[1:]:
-                        run.text = ''
-                else:
-                    paragraph.add_run(replaced_text)
-                return True
-            
+    def normalize_placeholder(text: str) -> str:
+        """
+        Normalize placeholder text by removing extra spaces inside braces.
+        { Account Number } -> {Account Number}
+        """
+        # Pattern to match placeholders with optional spaces
+        pattern = r'\{\s*([^}]+?)\s*\}'
+        return re.sub(pattern, lambda m: '{' + m.group(1).strip() + '}', text)
+    
     @staticmethod
-    def replace_in_cell(cell, old_text: str, new_text: str):
-        """Replace text in a table cell - handles multiple paragraphs."""
-        # Try replacing in each paragraph first
+    def replace_in_paragraph(paragraph, replacements: Dict[str, str]) -> bool:
+        """
+        Replace text in a paragraph while preserving formatting.
+        Handles placeholders with various spacing: {placeholder}, { placeholder }, etc.
+        """
+        if not paragraph.runs:
+            return False
+        
+        # Get full text from all runs
+        full_text = ''.join(run.text for run in paragraph.runs)
+        
+        if not full_text.strip():
+            return False
+        
+        # Normalize the text to handle spacing variations
+        normalized_text = ClaimLetterGenerator.normalize_placeholder(full_text)
+        
+        # Track if any replacement was made
         replaced = False
+        
+        # Try each replacement
+        for old_text, new_text in replacements.items():
+            # Normalize the placeholder key as well
+            normalized_key = ClaimLetterGenerator.normalize_placeholder(old_text)
+            
+            if normalized_key in normalized_text:
+                new_text_str = str(new_text) if new_text is not None else ''
+                normalized_text = normalized_text.replace(normalized_key, new_text_str)
+                replaced = True
+        
+        # If we made replacements, update the paragraph
+        if replaced:
+            # Clear all runs except the first
+            paragraph.runs[0].text = normalized_text
+            for run in paragraph.runs[1:]:
+                run.text = ''
+        
+        return replaced
+    
+    @staticmethod
+    def replace_in_cell(cell, replacements: Dict[str, str]) -> bool:
+        """Replace text in a table cell - handles multiple paragraphs."""
+        replaced = False
+        
+        # Replace in each paragraph
         for paragraph in cell.paragraphs:
-            if ClaimLetterGenerator.replace_in_paragraph(paragraph, old_text, new_text):
+            if ClaimLetterGenerator.replace_in_paragraph(paragraph, replacements):
                 replaced = True
         
         # Also check nested tables within the cell
         for table in cell.tables:
-            if ClaimLetterGenerator.replace_in_table(table, old_text, new_text):
+            if ClaimLetterGenerator.replace_in_table(table, replacements):
                 replaced = True
         
         return replaced
     
     @staticmethod
-    def replace_in_table(table, old_text: str, new_text: str):
+    def replace_in_table(table, replacements: Dict[str, str]) -> bool:
         """Replace text in a table - handles nested tables."""
         replaced = False
         for row in table.rows:
             for cell in row.cells:
-                if ClaimLetterGenerator.replace_in_cell(cell, old_text, new_text):
+                if ClaimLetterGenerator.replace_in_cell(cell, replacements):
                     replaced = True
         return replaced
     
     def replace_placeholders(self, doc: Document, replacements: Dict[str, str]):
         """Replace all placeholders in the document."""
-        import re
-        
-        # Create expanded replacements with various format variants
-        expanded_replacements = {}
-        
-        for key, value in replacements.items():
-            expanded_replacements[key] = value
-            # Add lowercase variant
-            expanded_replacements[key.lower()] = value
-            # Add variant without spaces inside braces
-            if ' ' in key:
-                expanded_replacements[key.replace(' ', '')] = value
-        
         # Replace in main document paragraphs
         for paragraph in doc.paragraphs:
-            for old_text, new_text in expanded_replacements.items():
-                self.replace_in_paragraph(paragraph, old_text, new_text)
+            self.replace_in_paragraph(paragraph, replacements)
         
-        # Replace in all tables (using the new cell-aware method)
+        # Replace in all tables
         for table in doc.tables:
-            for row in table.rows:
-                for cell in row.cells:
-                    for old_text, new_text in expanded_replacements.items():
-                        self.replace_in_cell(cell, old_text, new_text)
+            self.replace_in_table(table, replacements)
         
         # Replace in headers and footers
         for section in doc.sections:
+            # Headers
             for header in [section.header, section.first_page_header, section.even_page_header]:
                 if header:
                     for paragraph in header.paragraphs:
-                        for old_text, new_text in expanded_replacements.items():
-                            self.replace_in_paragraph(paragraph, old_text, new_text)
+                        self.replace_in_paragraph(paragraph, replacements)
                     for table in header.tables:
-                        for row in table.rows:
-                            for cell in row.cells:
-                                for old_text, new_text in expanded_replacements.items():
-                                    self.replace_in_cell(cell, old_text, new_text)
+                        self.replace_in_table(table, replacements)
             
+            # Footers
             for footer in [section.footer, section.first_page_footer, section.even_page_footer]:
                 if footer:
                     for paragraph in footer.paragraphs:
-                        for old_text, new_text in expanded_replacements.items():
-                            self.replace_in_paragraph(paragraph, old_text, new_text)
+                        self.replace_in_paragraph(paragraph, replacements)
                     for table in footer.tables:
-                        for row in table.rows:
-                            for cell in row.cells:
-                                for old_text, new_text in expanded_replacements.items():
-                                    self.replace_in_cell(cell, old_text, new_text)
+                        self.replace_in_table(table, replacements)
+    
+    def debug_document_content(self, doc: Document):
+        """Debug what's actually in the document to help diagnose replacement issues."""
+        print("\n" + "="*70)
+        print("DOCUMENT CONTENT DEBUG")
+        print("="*70)
+        
+        print("\n--- PARAGRAPHS ---")
+        for i, para in enumerate(doc.paragraphs):
+            if para.text.strip():
+                print(f"Paragraph {i}: {repr(para.text)}")
+        
+        print("\n--- TABLES ---")
+        for t_i, table in enumerate(doc.tables):
+            print(f"\nTable {t_i}:")
+            for r_i, row in enumerate(table.rows):
+                for c_i, cell in enumerate(row.cells):
+                    cell_text = cell.text.strip()
+                    if cell_text:
+                        print(f"  Row {r_i}, Col {c_i}: {repr(cell_text)}")
+        
+        print("\n" + "="*70 + "\n")
     
     def generate_letter(self, output_path: str, credit_data: Dict[str, Any], 
-                       in_scope_item: Dict[str, Any]) -> bool:
+                       in_scope_item: Dict[str, Any], debug: bool = False) -> bool:
         """
         Generate a single letter of claim.
         
@@ -355,6 +383,7 @@ class ClaimLetterGenerator:
             output_path: Where to save the generated letter
             credit_data: Full credit report data
             in_scope_item: The specific in-scope lender data
+            debug: If True, print debug information
             
         Returns:
             bool: True if successful, False otherwise
@@ -362,7 +391,10 @@ class ClaimLetterGenerator:
         try:
             # Load template
             doc = Document(self.template_path)
-            self.debug_table_content(doc)  # Add this line
+            
+            if debug:
+                self.debug_document_content(doc)
+            
             # Parse client information
             client_info = credit_data['credit_analysis']['client_info']
             client_name_parts = self.parse_client_name(client_info['name'])
@@ -385,7 +417,8 @@ class ClaimLetterGenerator:
             # Get current date
             current_date = datetime.now().strftime('%d/%m/%Y')
             
-            # Prepare replacements (including common variations)
+            # Prepare replacements - the key should match what's in the template
+            # We'll handle spacing variations in the replacement logic
             replacements = {
                 '{Date}': current_date,
                 '{Defendant Name}': defendant_name,
@@ -399,12 +432,9 @@ class ClaimLetterGenerator:
                 '{Bank}': bank_details.get('bank_name', defendant_name),
                 '{Account Name}': bank_details.get('account_name', client_info['name']),
                 '{Account Number}': account_details['account_number'],
-                '{ Account Number }': account_details['account_number'],  # With spaces
                 '{Sort Code}': bank_details.get('sort_code', 'TBC'),
                 '{Agreement Number}': account_details['account_number'],
-                '{ Agreement Number }': account_details['account_number'],  # With spaces
                 '{Agreement Start Date}': account_details['start_date'],
-                '{ Agreement Start Date }': account_details['start_date'],  # With spaces
                 '{Report Received Date}': current_date,
                 '{Report Outcome}': 'unaffordable',
             }
@@ -421,31 +451,15 @@ class ClaimLetterGenerator:
             import traceback
             traceback.print_exc()
             return False
-        
-    def debug_table_content(self, doc: Document):
-        """Debug what's actually in the tables."""
-        print("\n" + "="*60)
-        print("TABLE DEBUG")
-        print("="*60)
-        for t_i, table in enumerate(doc.tables):
-            print(f"\nTable {t_i}:")
-            for r_i, row in enumerate(table.rows):
-                for c_i, cell in enumerate(row.cells):
-                    for p_i, para in enumerate(cell.paragraphs):
-                        text = para.text
-                        runs = [repr(r.text) for r in para.runs]
-                        print(f"  Row {r_i}, Col {c_i}, Para {p_i}:")
-                        print(f"    Text: {repr(text)}")
-                        print(f"    Runs: {runs}")
-        print("="*60)
     
-    def process_credit_report(self, report_data: Dict[str, Any], output_dir: str) -> int:
+    def process_credit_report(self, report_data: Dict[str, Any], output_dir: str, debug: bool = False) -> int:
         """
         Process a single credit report and generate letters for all in-scope lenders.
         
         Args:
             report_data: Credit report JSON data
             output_dir: Directory to save generated letters
+            debug: If True, print debug information
             
         Returns:
             int: Number of letters generated
@@ -466,7 +480,7 @@ class ClaimLetterGenerator:
         if in_scope_lenders:
             print(f"\n📄 {client_name}: {len(in_scope_lenders)} in-scope lender(s)")
             
-            for lender in in_scope_lenders:
+            for i, lender in enumerate(in_scope_lenders):
                 lender_name = lender.get('name', 'Unknown_Lender')
                 safe_lender_name = ''.join(c if c.isalnum() or c in [' ', '_'] else '_' for c in lender_name)
                 safe_lender_name = safe_lender_name.replace(' ', '_')
@@ -474,7 +488,10 @@ class ClaimLetterGenerator:
                 output_filename = f"{safe_client_name}_{safe_lender_name}_LOC.docx"
                 output_path = os.path.join(output_dir, output_filename)
                 
-                if self.generate_letter(output_path, report_data, lender):
+                # Only debug the first letter
+                debug_this = debug and i == 0
+                
+                if self.generate_letter(output_path, report_data, lender, debug=debug_this):
                     print(f"  ✓ {lender_name}")
                     letters_generated += 1
                 else:
@@ -523,13 +540,14 @@ class ClaimLetterGenerator:
         
         return json_files
     
-    def generate_all(self, json_input: str, output_dir: str) -> Dict[str, Any]:
+    def generate_all(self, json_input: str, output_dir: str, debug: bool = False) -> Dict[str, Any]:
         """
         Generate letters for all credit reports in the input.
         
         Args:
             json_input: Path to JSON file/directory or JSON string
             output_dir: Directory to save generated letters
+            debug: If True, print debug information for first letter
             
         Returns:
             Dictionary with generation statistics
@@ -544,8 +562,10 @@ class ClaimLetterGenerator:
         print(f"   Found {len(credit_reports)} credit report(s)\n")
         
         # Process each report
-        for report_data in credit_reports:
-            letters_count = self.process_credit_report(report_data, output_dir)
+        for i, report_data in enumerate(credit_reports):
+            # Only debug first report
+            debug_this = debug and i == 0
+            letters_count = self.process_credit_report(report_data, output_dir, debug=debug_this)
             self.stats['total_letters'] += letters_count
         
         # Print summary
@@ -572,13 +592,13 @@ def main():
         epilog="""
 Examples:
   # Process a single JSON file
-  python generate_claim_letters_v2.py data.json
+  python generate_claim_letters_v2_fixed.py data.json
   
   # Process all JSON files in a directory
-  python generate_claim_letters_v2.py ./json_files/ -o ./letters
+  python generate_claim_letters_v2_fixed.py ./json_files/ -o ./letters
   
-  # Specify custom template
-  python generate_claim_letters_v2.py data.json -t custom_template.docx
+  # Specify custom template and enable debug mode
+  python generate_claim_letters_v2_fixed.py data.json -t custom_template.docx --debug
         """
     )
     
@@ -586,15 +606,16 @@ Examples:
     parser.add_argument('-o', '--output', default=DEFAULT_OUTPUT_DIR,
                        help=f'Output directory (default: {DEFAULT_OUTPUT_DIR})')
     parser.add_argument('-t', '--template', 
-                       default='/mnt/user-data/uploads/Affordability_Letter_of_Claim_.docx',
+                       default='Affordability_Letter_of_Claim_.docx',
                        help='Path to Word template')
+    parser.add_argument('--debug', action='store_true',
+                       help='Enable debug mode to see document structure')
     
     args = parser.parse_args()
     
     # Generate letters
     generator = ClaimLetterGenerator(args.template)
-    generator.analyze_template(args.template)
-    generator.generate_all(args.json_input, args.output)
+    generator.generate_all(args.json_input, args.output, debug=args.debug)
 
 
 if __name__ == '__main__':
