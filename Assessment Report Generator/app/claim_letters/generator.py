@@ -1,6 +1,7 @@
 """
 Enhanced Letter of Claim Generator
 Supports multiple JSON inputs, batch processing, and integration with existing systems
+Dynamically extracts bank details and addresses from JSON data
 """
 
 import json
@@ -16,18 +17,11 @@ import argparse
 # Try to import config, fall back to defaults if not available
 try:
     from config_claim_letters import (
-        BANK_DETAILS, 
         DEFAULT_OUTPUT_DIR, 
         DEFENDANT_ADDRESSES,
         AGREEMENT_TYPES
     )
 except ImportError:
-    BANK_DETAILS = {
-        'bank_name': 'TBC',
-        'account_name': 'TBC',
-        'account_number': 'TBC',
-        'sort_code': 'TBC'
-    }
     DEFAULT_OUTPUT_DIR = 'claim_letters'
     DEFENDANT_ADDRESSES = {}
     AGREEMENT_TYPES = {}
@@ -36,16 +30,14 @@ except ImportError:
 class ClaimLetterGenerator:
     """Generator for Letters of Claim from credit report JSON data."""
     
-    def __init__(self, template_path: str, bank_details: Optional[Dict[str, str]] = None):
+    def __init__(self, template_path: str):
         """
         Initialize the generator.
         
         Args:
             template_path: Path to the Word template file
-            bank_details: Optional override for bank details
         """
         self.template_path = template_path
-        self.bank_details = bank_details or BANK_DETAILS
         self.stats = {
             'total_reports': 0,
             'total_letters': 0,
@@ -77,6 +69,7 @@ class ClaimLetterGenerator:
         # Extract postcode (typically last line with numbers)
         if lines:
             last_line = lines[-1]
+            # Common UK postcode pattern
             if any(char.isdigit() for char in last_line) and len(last_line) <= 10:
                 postcode = last_line
                 address_lines = lines[:-1]
@@ -91,6 +84,64 @@ class ClaimLetterGenerator:
             'line3': address_lines[2] if len(address_lines) > 2 else '',
             'postcode': postcode if postcode else (address_lines[-1] if address_lines else '')
         }
+    
+    @staticmethod
+    def extract_bank_details_from_json(credit_data: Dict[str, Any]) -> Dict[str, str]:
+        """
+        Extract bank details from the JSON credit report.
+        
+        Args:
+            credit_data: Full credit report data
+            
+        Returns:
+            Dictionary with bank details
+        """
+        bank_details = {
+            'bank_name': '',
+            'account_name': '',
+            'account_number': '',
+            'sort_code': ''
+        }
+        
+        # Try to get from client_info
+        client_info = credit_data.get('credit_analysis', {}).get('client_info', {})
+        
+        # Extract bank name from bank_details if present
+        json_bank_details = client_info.get('bank_details', {})
+        if isinstance(json_bank_details, dict):
+            bank_details['bank_name'] = json_bank_details.get('bank_name', '')
+            bank_details['account_number'] = json_bank_details.get('account_number', '')
+            bank_details['sort_code'] = json_bank_details.get('sort_code', '')
+        
+        # Account name should be the client's name
+        client_name = client_info.get('name', '')
+        if client_name:
+            bank_details['account_name'] = client_name
+        
+        return bank_details
+    
+    @staticmethod
+    def get_defendant_address(defendant_name: str, in_scope_item: Dict[str, Any]) -> str:
+        """
+        Get defendant address from config or JSON.
+        
+        Args:
+            defendant_name: Name of the defendant
+            in_scope_item: The in-scope lender data
+            
+        Returns:
+            Address string
+        """
+        # First try the config
+        if defendant_name in DEFENDANT_ADDRESSES:
+            return DEFENDANT_ADDRESSES[defendant_name]
+        
+        # Try to get from JSON if available
+        if 'address' in in_scope_item:
+            return in_scope_item['address']
+        
+        # Default
+        return 'Address TBC'
     
     @staticmethod
     def replace_in_paragraph(paragraph, old_text: str, new_text: str):
@@ -169,9 +220,12 @@ class ClaimLetterGenerator:
             client_name_parts = self.parse_client_name(client_info['name'])
             client_address = self.parse_address(client_info['address'])
             
-            # Get defendant address
+            # Extract bank details from JSON
+            bank_details = self.extract_bank_details_from_json(credit_data)
+            
+            # Get defendant information
             defendant_name = in_scope_item['name']
-            defendant_address = DEFENDANT_ADDRESSES.get(defendant_name, 'Address TBC')
+            defendant_address = self.get_defendant_address(defendant_name, in_scope_item)
             
             # Get current date
             current_date = datetime.now().strftime('%d/%m/%Y')
@@ -187,10 +241,10 @@ class ClaimLetterGenerator:
                 '{Address Line 2}': client_address['line2'],
                 '{Address Line 3}': client_address['line3'],
                 '{Postcode}': client_address['postcode'],
-                '{Bank}': self.bank_details.get('bank_name', 'TBC'),
-                '{Account Name}': self.bank_details.get('account_name', 'TBC'),
-                '{Account Number}': self.bank_details.get('account_number', 'TBC'),
-                '{Sort Code}': self.bank_details.get('sort_code', 'TBC'),
+                '{Bank}': bank_details.get('bank_name', defendant_name),  # Use defendant name as bank name
+                '{Account Name}': bank_details.get('account_name', client_info['name']),  # Use client name
+                '{Account Number}': bank_details.get('account_number', 'TBC'),
+                '{Sort Code}': bank_details.get('sort_code', 'TBC'),
                 '{Agreement Number}': 'TBC',
                 '{Agreement Start Date}': 'TBC',
                 '{Report Received Date}': current_date,
@@ -206,6 +260,8 @@ class ClaimLetterGenerator:
             
         except Exception as e:
             print(f"✗ Error generating {output_path}: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return False
     
     def process_credit_report(self, report_data: Dict[str, Any], output_dir: str) -> int:
@@ -346,9 +402,6 @@ Examples:
   
   # Specify custom template
   python generate_claim_letters_v2.py data.json -t custom_template.docx
-  
-  # Override bank details
-  python generate_claim_letters_v2.py data.json --bank-name "My Bank" --account-number "12345678"
         """
     )
     
@@ -358,26 +411,11 @@ Examples:
     parser.add_argument('-t', '--template', 
                        default='/mnt/user-data/uploads/Affordability_Letter_of_Claim_.docx',
                        help='Path to Word template')
-    parser.add_argument('--bank-name', help='Override bank name')
-    parser.add_argument('--account-name', help='Override account name')
-    parser.add_argument('--account-number', help='Override account number')
-    parser.add_argument('--sort-code', help='Override sort code')
     
     args = parser.parse_args()
     
-    # Override bank details if provided
-    bank_details = BANK_DETAILS.copy()
-    if args.bank_name:
-        bank_details['bank_name'] = args.bank_name
-    if args.account_name:
-        bank_details['account_name'] = args.account_name
-    if args.account_number:
-        bank_details['account_number'] = args.account_number
-    if args.sort_code:
-        bank_details['sort_code'] = args.sort_code
-    
     # Generate letters
-    generator = ClaimLetterGenerator(args.template, bank_details)
+    generator = ClaimLetterGenerator(args.template)
     generator.generate_all(args.json_input, args.output)
 
 
