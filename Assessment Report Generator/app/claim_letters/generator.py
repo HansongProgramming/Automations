@@ -184,6 +184,46 @@ class ClaimLetterGenerator:
         return bank_details
     
     @staticmethod
+    def extract_account_details_from_lender(in_scope_item: Dict[str, Any]) -> Dict[str, str]:
+        """
+        Extract account number and start date from in-scope lender data.
+        """
+        account_details = {
+            'account_number': 'TBC',
+            'start_date': 'TBC'
+        }
+        
+        # Handle account number - check single value first
+        if 'account_number' in in_scope_item:
+            account_number = in_scope_item.get('account_number')
+            if account_number and str(account_number).strip():
+                account_details['account_number'] = str(account_number).strip()
+        
+        # If single value wasn't available, try the array
+        if account_details['account_number'] == 'TBC' and 'account_numbers' in in_scope_item:
+            account_numbers = in_scope_item.get('account_numbers', [])
+            if account_numbers and len(account_numbers) > 0:
+                first_account = str(account_numbers[0]).strip()
+                if first_account:
+                    account_details['account_number'] = first_account
+        
+        # Handle start date - check single value first
+        if 'start_date' in in_scope_item:
+            start_date = in_scope_item.get('start_date')
+            if start_date and str(start_date).strip():
+                account_details['start_date'] = str(start_date).strip()
+        
+        # If single value wasn't available, try the array
+        if account_details['start_date'] == 'TBC' and 'start_dates' in in_scope_item:
+            start_dates = in_scope_item.get('start_dates', [])
+            if start_dates and len(start_dates) > 0:
+                first_date = str(start_dates[0]).strip()
+                if first_date:
+                    account_details['start_date'] = first_date
+        
+        return account_details
+    
+    @staticmethod
     def get_defendant_address(defendant_name: str, in_scope_item: Dict[str, Any]) -> str:
         """
         Get defendant address from config or JSON.
@@ -286,6 +326,13 @@ class ClaimLetterGenerator:
             # Extract bank details from JSON
             bank_details = self.extract_bank_details_from_json(credit_data)
             
+            # Extract account details from the in_scope_item
+            account_details = self.extract_account_details_from_lender(in_scope_item)
+            
+            # Debug: Print what we extracted
+            print(f"    → Account Number: {account_details['account_number']}")
+            print(f"    → Start Date: {account_details['start_date']}")
+            
             # Get defendant information
             defendant_name = in_scope_item['name']
             defendant_address = self.get_defendant_address(defendant_name, in_scope_item)
@@ -293,7 +340,7 @@ class ClaimLetterGenerator:
             # Get current date
             current_date = datetime.now().strftime('%d/%m/%Y')
             
-            # Prepare replacements
+            # Prepare replacements (including common variations)
             replacements = {
                 '{Date}': current_date,
                 '{Defendant Name}': defendant_name,
@@ -304,12 +351,15 @@ class ClaimLetterGenerator:
                 '{Address Line 2}': client_address['line2'],
                 '{Address Line 3}': client_address['line3'],
                 '{Postcode}': client_address['postcode'],
-                '{Bank}': bank_details.get('bank_name', defendant_name),  # Use defendant name as bank name
-                '{Account Name}': bank_details.get('account_name', client_info['name']),  # Use client name
-                '{Account Number}': bank_details.get('account_number', 'TBC'),
+                '{Bank}': bank_details.get('bank_name', defendant_name),
+                '{Account Name}': bank_details.get('account_name', client_info['name']),
+                '{Account Number}': account_details['account_number'],
+                '{ Account Number }': account_details['account_number'],  # With spaces
                 '{Sort Code}': bank_details.get('sort_code', 'TBC'),
-                '{Agreement Number}': 'TBC',
-                '{Agreement Start Date}': 'TBC',
+                '{Agreement Number}': account_details['account_number'],
+                '{ Agreement Number }': account_details['account_number'],  # With spaces
+                '{Agreement Start Date}': account_details['start_date'],
+                '{ Agreement Start Date }': account_details['start_date'],  # With spaces
                 '{Report Received Date}': current_date,
                 '{Report Outcome}': 'unaffordable',
             }

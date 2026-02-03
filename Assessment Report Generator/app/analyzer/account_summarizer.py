@@ -348,8 +348,8 @@ class AccountSummarizer:
         return {
             'name': lender,
             'type': account_type,
-            'account_numbers': account_numbers,  # List of all account numbers
-            'start_dates': dates,  # List of all start dates
+            'account_numbers': account_numbers,  
+            'start_dates': dates,
             'title': title_suffix,
             'body': body.strip()
         }
