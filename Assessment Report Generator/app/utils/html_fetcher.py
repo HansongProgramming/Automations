@@ -54,7 +54,7 @@ async def fetch_multiple_html(urls: list) -> list:
         List of dicts with fetch results
     """
     # Use connection pooling with reasonable limits
-    connector = aiohttp.TCPConnector(limit=10, limit_per_host=5)
+    connector = aiohttp.TCPConnector(limit=30, limit_per_host=5)
     timeout = aiohttp.ClientTimeout(total=60)
     
     async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
