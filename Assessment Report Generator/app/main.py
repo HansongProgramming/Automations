@@ -18,7 +18,7 @@ from .analyzer.credit_analyzer import CreditReportAnalyzer
 from .utils.template_renderer import HTMLTemplateRenderer
 from .utils.pdf_generator import pdf_generator
 from .claim_letters.generator import ClaimLetterGenerator
-from .claim_letters.config import BANK_DETAILS, TEMPLATE_PATH
+from .claim_letters.config import TEMPLATE_PATH  # REMOVED BANK_DETAILS - now dynamic
 
 # Configure logging
 logging.basicConfig(
@@ -46,8 +46,8 @@ app.add_middleware(
 # Initialize HTML template renderer
 html_renderer = HTMLTemplateRenderer()
 
-# Initialize claim letter generator
-claim_letter_generator = ClaimLetterGenerator(TEMPLATE_PATH, BANK_DETAILS)
+# Initialize claim letter generator (NO BANK_DETAILS - now dynamic from JSON)
+claim_letter_generator = ClaimLetterGenerator(TEMPLATE_PATH)
 
 
 async def analyze_single_report(url: str, html_content: str) -> Dict[str, Any]:
@@ -379,6 +379,12 @@ async def generate_claim_letters(analysis_results: List[Dict[str, Any]]):
     This endpoint accepts the JSON output from /analyze and generates
     individual Word documents for each in-scope lender.
     
+    IMPORTANT: Bank details are now extracted DYNAMICALLY from the JSON:
+    - Bank: Uses defendant/lender name
+    - Account Name: Uses client name from JSON
+    - Account Number: From client_info.bank_details.account_number (or "TBC")
+    - Sort Code: From client_info.bank_details.sort_code (or "TBC")
+    
     Example request (JSON from /analyze endpoint):
     ```json
     [
@@ -387,7 +393,11 @@ async def generate_claim_letters(analysis_results: List[Dict[str, Any]]):
             "credit_analysis": {
                 "client_info": {
                     "name": "JOHN DOE",
-                    "address": "123 Main St\nLondon\nSW1A 1AA"
+                    "address": "123 Main St\nLondon\nSW1A 1AA",
+                    "bank_details": {  // OPTIONAL
+                        "account_number": "12345678",
+                        "sort_code": "12-34-56"
+                    }
                 },
                 "claims_analysis": {
                     "in_scope": [
@@ -448,8 +458,8 @@ async def generate_claim_letters(analysis_results: List[Dict[str, Any]]):
                     filename = f"{safe_client_name}_{safe_lender_name}_LOC.docx"
                     
                     try:
-                        # Generate letter in memory
                         from docx import Document
+                        from datetime import datetime
                         
                         # Load template
                         doc = Document(TEMPLATE_PATH)
@@ -458,15 +468,17 @@ async def generate_claim_letters(analysis_results: List[Dict[str, Any]]):
                         client_name_parts = claim_letter_generator.parse_client_name(client_info['name'])
                         client_address = claim_letter_generator.parse_address(client_info['address'])
                         
-                        # Get defendant address from config or use TBC
-                        from .claim_letters.config import DEFENDANT_ADDRESSES
-                        defendant_address = DEFENDANT_ADDRESSES.get(lender_name, 'Address TBC')
+                        # DYNAMIC: Extract bank details from JSON
+                        bank_details = claim_letter_generator.extract_bank_details_from_json(report_data)
+                        
+                        # DYNAMIC: Get defendant address (checks config then JSON)
+                        defendant_address = claim_letter_generator.get_defendant_address(lender_name, lender)
                         
                         # Get current date
-                        from datetime import datetime
                         current_date = datetime.now().strftime('%d/%m/%Y')
-                        
-                        # Prepare replacements
+                        account_details = claim_letter_generator.extract_account_details_from_lender(lender)
+
+                        # Prepare replacements with DYNAMIC data
                         replacements = {
                             '{Date}': current_date,
                             '{Defendant Name}': lender_name,
@@ -477,12 +489,12 @@ async def generate_claim_letters(analysis_results: List[Dict[str, Any]]):
                             '{Address Line 2}': client_address['line2'],
                             '{Address Line 3}': client_address['line3'],
                             '{Postcode}': client_address['postcode'],
-                            '{Bank}': BANK_DETAILS.get('bank_name', 'TBC'),
-                            '{Account Name}': BANK_DETAILS.get('account_name', 'TBC'),
-                            '{Account Number}': BANK_DETAILS.get('account_number', 'TBC'),
-                            '{Sort Code}': BANK_DETAILS.get('sort_code', 'TBC'),
+                            '{Bank}': lender_name,  # DEFENDANT NAME as bank
+                            '{Account Name}': client_info['name'],  # CLIENT NAME as account name
+                            '{Account Number}': account_details['account_number'],
+                            '{Sort Code}': bank_details.get('sort_code', 'TBC'),
                             '{Agreement Number}': 'TBC',
-                            '{Agreement Start Date}': 'TBC',
+                            '{Agreement Start Date}': account_details['start_date'],
                             '{Report Received Date}': current_date,
                             '{Report Outcome}': 'unaffordable',
                         }
@@ -499,10 +511,10 @@ async def generate_claim_letters(analysis_results: List[Dict[str, Any]]):
                         zf.writestr(filename, doc_bytes.getvalue())
                         letter_count += 1
                         
-                        logger.info(f"  ✓ Generated: {filename}")
+                        logger.info(f"  ✓ {lender_name}")
                         
                     except Exception as e:
-                        logger.error(f"  ✗ Failed to generate {filename}: {str(e)}")
+                        logger.error(f"  ✗ {lender_name} - Failed: {str(e)}")
                         continue
             
             if letter_count == 0:
@@ -545,7 +557,12 @@ async def analyze_pdf_and_letters(request: AnalyzeRequest):
     This endpoint does everything in one call:
     1. Analyzes credit reports from URLs
     2. Generates PDF reports
-    3. Generates Letters of Claim for all in-scope lenders
+    3. Generates Letters of Claim for all in-scope lenders (with DYNAMIC bank details)
+    
+    Bank details in letters are extracted from JSON:
+    - Bank: Defendant/lender name
+    - Account Name: Client name
+    - Account Number/Sort Code: From bank_details in JSON (or "TBC")
     
     Returns a ZIP file containing:
     - PDF reports (one per client)
@@ -629,10 +646,10 @@ async def analyze_pdf_and_letters(request: AnalyzeRequest):
                     filename = f"{safe_name}_credit_report.pdf"
                     
                     pdf_files[filename] = pdf_bytes
-                    logger.info(f"  ✓ Generated PDF: {filename} ({len(pdf_bytes):,} bytes)")
+                    logger.info(f"  ✓ PDF: {filename} ({len(pdf_bytes):,} bytes)")
                     
                 except Exception as e:
-                    logger.error(f"  ✗ PDF generation failed for {client_name}: {e}")
+                    logger.error(f"  ✗ PDF failed for {client_name}: {e}")
         
         # ==========================================
         # STEP 3: GENERATE CLAIM LETTERS
@@ -669,7 +686,6 @@ async def analyze_pdf_and_letters(request: AnalyzeRequest):
                 try:
                     from docx import Document
                     from datetime import datetime
-                    from .claim_letters.config import DEFENDANT_ADDRESSES
                     
                     # Load template
                     doc = Document(TEMPLATE_PATH)
@@ -678,10 +694,18 @@ async def analyze_pdf_and_letters(request: AnalyzeRequest):
                     client_name_parts = claim_letter_generator.parse_client_name(client_info['name'])
                     client_address = claim_letter_generator.parse_address(client_info['address'])
                     
-                    defendant_address = DEFENDANT_ADDRESSES.get(lender_name, 'Address TBC')
+                    # DYNAMIC: Extract bank details from JSON
+                    bank_details = claim_letter_generator.extract_bank_details_from_json(report_data)
+                    
+                    # ✅ ADD THIS: Extract account details from lender
+                    account_details = claim_letter_generator.extract_account_details_from_lender(lender)
+                    
+                    # DYNAMIC: Get defendant address
+                    defendant_address = claim_letter_generator.get_defendant_address(lender_name, lender)
+                    
                     current_date = datetime.now().strftime('%d/%m/%Y')
                     
-                    # Prepare replacements
+                    # Prepare replacements with DYNAMIC data
                     replacements = {
                         '{Date}': current_date,
                         '{Defendant Name}': lender_name,
@@ -692,12 +716,12 @@ async def analyze_pdf_and_letters(request: AnalyzeRequest):
                         '{Address Line 2}': client_address['line2'],
                         '{Address Line 3}': client_address['line3'],
                         '{Postcode}': client_address['postcode'],
-                        '{Bank}': BANK_DETAILS.get('bank_name', 'TBC'),
-                        '{Account Name}': BANK_DETAILS.get('account_name', 'TBC'),
-                        '{Account Number}': BANK_DETAILS.get('account_number', 'TBC'),
-                        '{Sort Code}': BANK_DETAILS.get('sort_code', 'TBC'),
-                        '{Agreement Number}': 'TBC',
-                        '{Agreement Start Date}': 'TBC',
+                        '{Bank}': lender_name,  # DEFENDANT NAME as bank
+                        '{Account Name}': client_info['name'],  # CLIENT NAME as account name
+                        '{Account Number}': account_details['account_number'],
+                        '{Sort Code}': bank_details.get('sort_code', 'TBC'),
+                        '{Agreement Number}': 'TBC',  # ✅ FIXED
+                        '{Agreement Start Date}': account_details['start_date'],  # ✅ FIXED
                         '{Report Received Date}': current_date,
                         '{Report Outcome}': 'unaffordable',
                     }
@@ -711,10 +735,10 @@ async def analyze_pdf_and_letters(request: AnalyzeRequest):
                     doc_bytes.seek(0)
                     
                     letter_files[filename] = doc_bytes.getvalue()
-                    logger.info(f"  ✓ Generated letter: {filename}")
+                    logger.info(f"  ✓ Letter: {filename}")
                     
                 except Exception as e:
-                    logger.error(f"  ✗ Failed to generate {filename}: {str(e)}")
+                    logger.error(f"  ✗ Letter failed: {filename} - {str(e)}")
         
         # ==========================================
         # STEP 4: CREATE COMBINED ZIP FILE

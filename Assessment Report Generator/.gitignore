@@ -1,1 +1,5 @@
 .env
+/complete_package/
+/claim_letters/
+/pdf_reports/
+/test_output/

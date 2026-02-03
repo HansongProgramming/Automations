@@ -13,8 +13,6 @@ from io import BytesIO
 # Your test URLs
 TEST_URLS = [
     "https://api.boshhhfintech.com/File/CreditReport/95d1ce7e-2c3c-49d5-a303-6a4727f91005?Auth=af26383640b084af4d2895307480ed795c334405b786d7419d78be541fcc0656",
-    "https://api.boshhhfintech.com/File/CreditReport/e5f86646-9227-4f4e-839e-5a3437b36a45?Auth=72372a1d2fb8b8e5c78b3d4096a53b853dc22422676f789fc888986b82847cf1",
-    "https://api.boshhhfintech.com/File/CreditReport/70f05ac1-4806-4d37-afed-52630f845d65?Auth=ce39264e377782c82ed70d69d405eea6e9471c679bb18cbf814f5db483ada838",
 ]
 
 BASE_URL = "http://localhost:8000"
