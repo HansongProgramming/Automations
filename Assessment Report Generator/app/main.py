@@ -720,8 +720,8 @@ async def analyze_pdf_and_letters(request: AnalyzeRequest):
                         '{Account Name}': client_info['name'],  # CLIENT NAME as account name
                         '{Account Number}': account_details['account_number'],
                         '{Sort Code}': bank_details.get('sort_code', 'TBC'),
-                        '{Agreement Number}': 'TBC',  # ✅ FIXED
-                        '{Agreement Start Date}': account_details['start_date'],  # ✅ FIXED
+                        '{Agreement Number}': 'TBC',  
+                        '{Agreement Start Date}': account_details['start_date'],  
                         '{Report Received Date}': current_date,
                         '{Report Outcome}': 'unaffordable',
                     }
