@@ -249,30 +249,51 @@ class ClaimLetterGenerator:
     @staticmethod
     def replace_in_paragraph(paragraph, old_text: str, new_text: str):
         """Replace text in a paragraph while preserving formatting."""
+        # Check if placeholder is in paragraph text (handles extra whitespace)
         if old_text in paragraph.text:
+            # Get full text by joining all runs
             full_text = ''.join([run.text for run in paragraph.runs])
             
             if old_text in full_text:
                 new_text_str = str(new_text) if new_text is not None else ''
                 
-                # Replace in full text
+                # Replace the placeholder
                 replaced_text = full_text.replace(old_text, new_text_str)
                 
-                # Clear all runs and put replaced text in first run
+                # Update runs - put all text in first run, clear others
                 if paragraph.runs:
                     paragraph.runs[0].text = replaced_text
                     for run in paragraph.runs[1:]:
                         run.text = ''
                 else:
                     paragraph.add_run(replaced_text)
+                return True
+            
+    @staticmethod
+    def replace_in_cell(cell, old_text: str, new_text: str):
+        """Replace text in a table cell - handles multiple paragraphs."""
+        # Try replacing in each paragraph first
+        replaced = False
+        for paragraph in cell.paragraphs:
+            if ClaimLetterGenerator.replace_in_paragraph(paragraph, old_text, new_text):
+                replaced = True
+        
+        # Also check nested tables within the cell
+        for table in cell.tables:
+            if ClaimLetterGenerator.replace_in_table(table, old_text, new_text):
+                replaced = True
+        
+        return replaced
     
     @staticmethod
     def replace_in_table(table, old_text: str, new_text: str):
-        """Replace text in a table."""
+        """Replace text in a table - handles nested tables."""
+        replaced = False
         for row in table.rows:
             for cell in row.cells:
-                for paragraph in cell.paragraphs:
-                    ClaimLetterGenerator.replace_in_paragraph(paragraph, old_text, new_text)
+                if ClaimLetterGenerator.replace_in_cell(cell, old_text, new_text):
+                    replaced = True
+        return replaced
     
     def replace_placeholders(self, doc: Document, replacements: Dict[str, str]):
         """Replace all placeholders in the document."""
@@ -283,31 +304,23 @@ class ClaimLetterGenerator:
         
         for key, value in replacements.items():
             expanded_replacements[key] = value
-            
             # Add lowercase variant
             expanded_replacements[key.lower()] = value
-            
             # Add variant without spaces inside braces
             if ' ' in key:
                 expanded_replacements[key.replace(' ', '')] = value
-            
-            # Add variant with normalized spacing (single spaces)
-            normalized = re.sub(r'\s+', ' ', key).strip()
-            if normalized != key:
-                expanded_replacements[normalized] = value
         
-        # Replace in paragraphs
+        # Replace in main document paragraphs
         for paragraph in doc.paragraphs:
             for old_text, new_text in expanded_replacements.items():
                 self.replace_in_paragraph(paragraph, old_text, new_text)
         
-        # Replace in tables
+        # Replace in all tables (using the new cell-aware method)
         for table in doc.tables:
             for row in table.rows:
                 for cell in row.cells:
-                    for paragraph in cell.paragraphs:
-                        for old_text, new_text in expanded_replacements.items():
-                            self.replace_in_paragraph(paragraph, old_text, new_text)
+                    for old_text, new_text in expanded_replacements.items():
+                        self.replace_in_cell(cell, old_text, new_text)
         
         # Replace in headers and footers
         for section in doc.sections:
@@ -319,9 +332,8 @@ class ClaimLetterGenerator:
                     for table in header.tables:
                         for row in table.rows:
                             for cell in row.cells:
-                                for paragraph in cell.paragraphs:
-                                    for old_text, new_text in expanded_replacements.items():
-                                        self.replace_in_paragraph(paragraph, old_text, new_text)
+                                for old_text, new_text in expanded_replacements.items():
+                                    self.replace_in_cell(cell, old_text, new_text)
             
             for footer in [section.footer, section.first_page_footer, section.even_page_footer]:
                 if footer:
@@ -331,9 +343,8 @@ class ClaimLetterGenerator:
                     for table in footer.tables:
                         for row in table.rows:
                             for cell in row.cells:
-                                for paragraph in cell.paragraphs:
-                                    for old_text, new_text in expanded_replacements.items():
-                                        self.replace_in_paragraph(paragraph, old_text, new_text)
+                                for old_text, new_text in expanded_replacements.items():
+                                    self.replace_in_cell(cell, old_text, new_text)
     
     def generate_letter(self, output_path: str, credit_data: Dict[str, Any], 
                        in_scope_item: Dict[str, Any]) -> bool:
@@ -351,7 +362,7 @@ class ClaimLetterGenerator:
         try:
             # Load template
             doc = Document(self.template_path)
-            
+            self.debug_table_content(doc)  # Add this line
             # Parse client information
             client_info = credit_data['credit_analysis']['client_info']
             client_name_parts = self.parse_client_name(client_info['name'])
@@ -410,6 +421,23 @@ class ClaimLetterGenerator:
             import traceback
             traceback.print_exc()
             return False
+        
+    def debug_table_content(self, doc: Document):
+        """Debug what's actually in the tables."""
+        print("\n" + "="*60)
+        print("TABLE DEBUG")
+        print("="*60)
+        for t_i, table in enumerate(doc.tables):
+            print(f"\nTable {t_i}:")
+            for r_i, row in enumerate(table.rows):
+                for c_i, cell in enumerate(row.cells):
+                    for p_i, para in enumerate(cell.paragraphs):
+                        text = para.text
+                        runs = [repr(r.text) for r in para.runs]
+                        print(f"  Row {r_i}, Col {c_i}, Para {p_i}:")
+                        print(f"    Text: {repr(text)}")
+                        print(f"    Runs: {runs}")
+        print("="*60)
     
     def process_credit_report(self, report_data: Dict[str, Any], output_dir: str) -> int:
         """
