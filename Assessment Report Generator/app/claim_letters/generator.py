@@ -60,29 +60,92 @@ class ClaimLetterGenerator:
     
     @staticmethod
     def parse_address(address: str) -> Dict[str, str]:
-        """Parse address into components."""
+        """
+        Parse address into components.
+        
+        Handles various address formats:
+        - "00164 GWYNEDD AVENUE, L, SA1 6LL\nSWANSEA"
+        - "123 High Street\nLondon\nSW1A 1AA"
+        """
+        if not address:
+            return {
+                'line1': '',
+                'line2': '',
+                'line3': '',
+                'postcode': ''
+            }
+        
+        # Split by newlines first
         lines = [line.strip() for line in address.split('\n') if line.strip()]
         
         postcode = ''
-        address_lines = lines.copy()
+        address_lines = []
         
-        # Extract postcode (typically last line with numbers)
-        if lines:
-            last_line = lines[-1]
-            # Common UK postcode pattern
-            if any(char.isdigit() for char in last_line) and len(last_line) <= 10:
-                postcode = last_line
-                address_lines = lines[:-1]
+        # Process each line to extract postcode
+        for i, line in enumerate(lines):
+            # Check if this line contains a UK postcode pattern
+            # UK postcode is usually at the end and has specific format
+            parts = line.split(',')
+            
+            # Check the last part for postcode
+            for j, part in enumerate(parts):
+                part = part.strip()
+                # UK postcode pattern: letters and numbers, typically 6-8 chars
+                if len(part) >= 5 and len(part) <= 8:
+                    # Check if it matches postcode pattern (has both letters and numbers)
+                    has_letters = any(c.isalpha() for c in part)
+                    has_numbers = any(c.isdigit() for c in part)
+                    has_space = ' ' in part
+                    
+                    if has_letters and has_numbers:
+                        postcode = part
+                        # Rebuild line without postcode
+                        remaining_parts = parts[:j] + parts[j+1:]
+                        if remaining_parts:
+                            line = ', '.join([p.strip() for p in remaining_parts if p.strip()])
+                        else:
+                            line = ''
+                        break
+            
+            if line:
+                address_lines.append(line)
         
-        # Pad to 3 lines
+        # If we didn't extract postcode yet, check the last line
+        if not postcode and address_lines:
+            last_line = address_lines[-1]
+            words = last_line.split()
+            
+            # Check if last word(s) look like postcode
+            for i in range(len(words) - 1, max(len(words) - 3, -1), -1):
+                potential_postcode = ' '.join(words[i:])
+                if len(potential_postcode) >= 5 and len(potential_postcode) <= 8:
+                    has_letters = any(c.isalpha() for c in potential_postcode)
+                    has_numbers = any(c.isdigit() for c in potential_postcode)
+                    if has_letters and has_numbers:
+                        postcode = potential_postcode
+                        address_lines[-1] = ' '.join(words[:i])
+                        if not address_lines[-1]:
+                            address_lines.pop()
+                        break
+        
+        # Ensure we have exactly 3 address lines
         while len(address_lines) < 3:
             address_lines.append('')
+        
+        # If we have more than 3 lines, combine them intelligently
+        if len(address_lines) > 3:
+            # Keep first line, combine middle lines, keep last line
+            address_lines = [
+                address_lines[0],
+                ', '.join(address_lines[1:-1]),
+                address_lines[-1]
+            ]
         
         return {
             'line1': address_lines[0] if len(address_lines) > 0 else '',
             'line2': address_lines[1] if len(address_lines) > 1 else '',
             'line3': address_lines[2] if len(address_lines) > 2 else '',
-            'postcode': postcode if postcode else (address_lines[-1] if address_lines else '')
+            'postcode': postcode
         }
     
     @staticmethod
