@@ -476,7 +476,8 @@ async def generate_claim_letters(analysis_results: List[Dict[str, Any]]):
                         
                         # Get current date
                         current_date = datetime.now().strftime('%d/%m/%Y')
-                        
+                        account_details = claim_letter_generator.extract_account_details_from_lender(lender)
+
                         # Prepare replacements with DYNAMIC data
                         replacements = {
                             '{Date}': current_date,
@@ -490,10 +491,10 @@ async def generate_claim_letters(analysis_results: List[Dict[str, Any]]):
                             '{Postcode}': client_address['postcode'],
                             '{Bank}': lender_name,  # DEFENDANT NAME as bank
                             '{Account Name}': client_info['name'],  # CLIENT NAME as account name
-                            '{Account Number}': bank_details.get('account_number', 'TBC'),
+                            '{Account Number}': account_details['account_number'],
                             '{Sort Code}': bank_details.get('sort_code', 'TBC'),
                             '{Agreement Number}': 'TBC',
-                            '{Agreement Start Date}': 'TBC',
+                            '{Agreement Start Date}': account_details['start_date'],
                             '{Report Received Date}': current_date,
                             '{Report Outcome}': 'unaffordable',
                         }
@@ -696,6 +697,9 @@ async def analyze_pdf_and_letters(request: AnalyzeRequest):
                     # DYNAMIC: Extract bank details from JSON
                     bank_details = claim_letter_generator.extract_bank_details_from_json(report_data)
                     
+                    # ✅ ADD THIS: Extract account details from lender
+                    account_details = claim_letter_generator.extract_account_details_from_lender(lender)
+                    
                     # DYNAMIC: Get defendant address
                     defendant_address = claim_letter_generator.get_defendant_address(lender_name, lender)
                     
@@ -714,10 +718,10 @@ async def analyze_pdf_and_letters(request: AnalyzeRequest):
                         '{Postcode}': client_address['postcode'],
                         '{Bank}': lender_name,  # DEFENDANT NAME as bank
                         '{Account Name}': client_info['name'],  # CLIENT NAME as account name
-                        '{Account Number}': bank_details.get('account_number', 'TBC'),
+                        '{Account Number}': account_details['account_number'],
                         '{Sort Code}': bank_details.get('sort_code', 'TBC'),
-                        '{Agreement Number}': 'TBC',
-                        '{Agreement Start Date}': 'TBC',
+                        '{Agreement Number}': 'TBC',  # ✅ FIXED
+                        '{Agreement Start Date}': account_details['start_date'],  # ✅ FIXED
                         '{Report Received Date}': current_date,
                         '{Report Outcome}': 'unaffordable',
                     }
