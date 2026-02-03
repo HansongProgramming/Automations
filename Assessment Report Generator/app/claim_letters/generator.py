@@ -379,6 +379,8 @@ class ClaimLetterGenerator:
         """
         Load JSON data from file, directory, or string.
         
+        Handles the format: [{"url": "...", "credit_analysis": {...}}]
+        
         Args:
             json_input: Path to file/directory or JSON string
             
