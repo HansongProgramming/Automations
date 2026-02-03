@@ -157,10 +157,22 @@ class AccountSummarizer:
             return f"{dates[0]} and {dates[1]}"
         return f"{', '.join(dates[:-1])}, and {dates[-1]}"
     
+    def _format_account_number_list(self, account_numbers: List[str]) -> str:
+        """Format a list of account numbers for display"""
+        if not account_numbers:
+            return "Unknown"
+        if len(account_numbers) == 1:
+            return account_numbers[0]
+        if len(account_numbers) == 2:
+            return f"{account_numbers[0]} and {account_numbers[1]}"
+        return f"{', '.join(account_numbers[:-1])}, and {account_numbers[-1]}"
+    
     def summarize_out_of_scope(self, account: Dict) -> Dict[str, str]:
         """Generate summary for out-of-scope account"""
         lender = account['lender']
         account_type = account['account_type']
+        account_number = account.get('account_number', 'Unknown')
+        start_date = account.get('start_date', 'Unknown')
         exclusion_reason = account['exclusion_reason']
         
         template = self.out_of_scope_templates.get(exclusion_reason, {
@@ -171,6 +183,8 @@ class AccountSummarizer:
         return {
             'name': lender,
             'type': account_type,
+            'account_number': account_number,
+            'start_date': start_date,
             'title': template['title'],
             'body': template['body'].format(
                 account_type_lower=self._format_account_type(account_type)
@@ -182,6 +196,9 @@ class AccountSummarizer:
         first_account = accounts[0]
         account_type = first_account['account_type']
         exclusion_reason = first_account['exclusion_reason']
+        
+        # Collect all account numbers
+        account_numbers = [acc.get('account_number', 'Unknown') for acc in accounts]
         
         template = self.out_of_scope_templates.get(exclusion_reason, {
             'title': 'Out of scope',
@@ -200,6 +217,8 @@ class AccountSummarizer:
         return {
             'name': lender,
             'type': account_type,
+            'account_numbers': account_numbers,  # List of all account numbers
+            'start_dates': dates,  # List of all start dates
             'title': title,
             'body': body
         }
@@ -208,6 +227,7 @@ class AccountSummarizer:
         """Generate summary for in-scope account"""
         lender = account['lender']
         account_type = account['account_type']
+        account_number = account.get('account_number', 'Unknown')
         lending_date = account.get('start_date', 'Unknown')
         default_date = account.get('default_date', 'N/A')
         loan_value = account.get('loan_value', '£0')
@@ -260,6 +280,8 @@ class AccountSummarizer:
         return {
             'name': lender,
             'type': account_type,
+            'account_number': account_number,
+            'start_date': lending_date,
             'title': template['title'],
             'body': body
         }
@@ -269,6 +291,9 @@ class AccountSummarizer:
         # Analyze all accounts to find the most concerning pattern
         has_any_default = any(acc.get('default_date', 'N/A') != 'N/A' for acc in accounts)
         is_subprime = any(acc.get('is_subprime_lender', False) for acc in accounts)
+        
+        # Collect all account numbers
+        account_numbers = [acc.get('account_number', 'Unknown') for acc in accounts]
         
         # Calculate average/aggregate risk
         risk_levels = [self._calculate_risk_level(acc.get('risk_indicators_at_lending', {})) for acc in accounts]
@@ -323,6 +348,8 @@ class AccountSummarizer:
         return {
             'name': lender,
             'type': account_type,
+            'account_numbers': account_numbers,  # List of all account numbers
+            'start_dates': dates,  # List of all start dates
             'title': title_suffix,
             'body': body.strip()
         }
