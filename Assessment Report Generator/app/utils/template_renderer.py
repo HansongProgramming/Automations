@@ -467,7 +467,7 @@ class HTMLTemplateRenderer:
         </div>
 
         <div class="footer">
-            <p>Irresponsible Lending Triage Report | Systemize</p>
+            <p> Credit Report Analysis | Systemize</p>
             <p>Generated: {{ current_date }}</p>
         </div>
     </div>
