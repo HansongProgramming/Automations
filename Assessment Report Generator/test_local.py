@@ -166,9 +166,73 @@ def test_pdf_generation():
         return False
 
 
+def test_html_generation():
+    """Test the /analyze-html endpoint"""
+    print_header("🌐 TEST 3: HTML REPORT GENERATION (/analyze-html)")
+    
+    print(f"\n📡 Generating HTML reports for {len(TEST_URLS)} report(s)...")
+    
+    try:
+        start_time = time.time()
+        
+        response = requests.post(
+            f"{BASE_URL}/analyze-html",
+            json={"urls": TEST_URLS},
+            timeout=300
+        )
+        response.raise_for_status()
+        
+        elapsed = time.time() - start_time
+        results = response.json()
+        
+        print(f"✅ HTML generation complete in {elapsed:.2f}s")
+        
+        # Save HTML files
+        output_dir = Path("html_reports")
+        output_dir.mkdir(exist_ok=True)
+        
+        success_count = 0
+        total_size = 0
+        
+        for result in results:
+            if 'html' in result and 'error' not in result:
+                client_name = result.get('client_name', 'Unknown')
+                html_content = result['html']
+                
+                # Create filename
+                safe_name = client_name.replace(' ', '_').replace('/', '_')
+                filename = f"{safe_name}_report.html"
+                html_path = output_dir / filename
+                
+                # Save HTML
+                with open(html_path, 'w', encoding='utf-8') as f:
+                    f.write(html_content)
+                
+                file_size = len(html_content)
+                total_size += file_size
+                success_count += 1
+                
+                print(f"   ✅ {client_name}: {file_size/1024:.1f} KB")
+            elif 'error' in result:
+                print(f"   ❌ Error: {result['error']}")
+        
+        print(f"\n📊 Summary:")
+        print(f"   • HTML reports generated: {success_count}")
+        print(f"   • Total size: {total_size/1024:.1f} KB")
+        print(f"   • Saved to: {output_dir.absolute()}")
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ HTML generation failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
 def test_claim_letters(analysis_results=None):
     """Test the /generate-claim-letters endpoint"""
-    print_header("📝 TEST 3: CLAIM LETTER GENERATION (/generate-claim-letters)")
+    print_header("📝 TEST 4: CLAIM LETTER GENERATION (/generate-claim-letters)")
     
     # Use provided analysis or load from file
     if analysis_results is None:
@@ -236,7 +300,7 @@ def test_claim_letters(analysis_results=None):
 
 def test_combined_endpoint():
     """Test the /analyze-pdf-and-letters combined endpoint"""
-    print_header("🚀 TEST 4: COMBINED ENDPOINT (/analyze-pdf-and-letters)")
+    print_header("🚀 TEST 5: COMBINED ENDPOINT (/analyze-pdf-and-letters)")
     
     print(f"\n📡 Running combined analysis for {len(TEST_URLS)} report(s)...")
     print("⏳ This will:")
@@ -446,10 +510,13 @@ def run_all_tests():
     # 3. PDF generation
     test_results['pdf'] = test_pdf_generation()
     
-    # 4. Claim letters (using analysis from step 2)
+    # 4. HTML generation
+    test_results['html'] = test_html_generation()
+    
+    # 5. Claim letters (using analysis from step 2)
     test_results['letters'] = test_claim_letters(analysis_results)
     
-    # 5. Combined endpoint
+    # 6. Combined endpoint
     test_results['combined'] = test_combined_endpoint()
     
     # Final summary
@@ -468,6 +535,7 @@ def run_all_tests():
         print("\n🎉 All tests passed!")
         print("\n💡 Output locations:")
         print("   • test_output/       - Analysis JSON")
+        print("   • html_reports/      - HTML reports")
         print("   • pdf_reports/       - PDF reports")
         print("   • claim_letters/     - Individual claim letters")
         print("   • complete_package/  - Combined packages")
@@ -486,15 +554,16 @@ def interactive_menu():
         print("\n  Select a test to run:")
         print("\n  1. Quick Test (Single Report - All Features)")
         print("  2. Test Analysis Only (/analyze)")
-        print("  3. Test PDF Generation (/analyze-pdf)")
-        print("  4. Test Claim Letters (/generate-claim-letters)")
-        print("  5. Test Combined Endpoint (/analyze-pdf-and-letters)")
-        print("  6. Run Complete Test Suite")
-        print("  7. Performance Benchmark")
-        print("  8. Health Check")
+        print("  3. Test HTML Generation (/analyze-html)")
+        print("  4. Test PDF Generation (/analyze-pdf)")
+        print("  5. Test Claim Letters (/generate-claim-letters)")
+        print("  6. Test Combined Endpoint (/analyze-pdf-and-letters)")
+        print("  7. Run Complete Test Suite")
+        print("  8. Performance Benchmark")
+        print("  9. Health Check")
         print("  0. Exit")
         
-        choice = input("\n  Enter choice (0-8): ").strip()
+        choice = input("\n  Enter choice (0-9): ").strip()
         
         if choice == '0':
             print("\n👋 Goodbye!")
@@ -504,16 +573,18 @@ def interactive_menu():
         elif choice == '2':
             test_analyze()
         elif choice == '3':
-            test_pdf_generation()
+            test_html_generation()
         elif choice == '4':
-            test_claim_letters()
+            test_pdf_generation()
         elif choice == '5':
-            test_combined_endpoint()
+            test_claim_letters()
         elif choice == '6':
-            run_all_tests()
+            test_combined_endpoint()
         elif choice == '7':
-            run_performance_benchmark()
+            run_all_tests()
         elif choice == '8':
+            run_performance_benchmark()
+        elif choice == '9':
             test_health()
         else:
             print("\n❌ Invalid choice. Please try again.")

@@ -265,10 +265,11 @@ async def analyze_reports_pdf(request: AnalyzeRequest):
                     logger.info(f"Generated PDF for {client_name}: {len(pdf_bytes):,} bytes")
                     
                 except Exception as e:
-                    logger.error(f"PDF generation failed for {client_name}: {e}")
+                    error_msg = f"{type(e).__name__}: {str(e)}" if str(e) else type(e).__name__
+                    logger.error(f"PDF generation failed for {client_name}: {error_msg}", exc_info=True)
                     pdf_results.append({
                         'url': html_result.get('url', 'unknown'),
-                        'error': f'PDF generation failed: {str(e)}',
+                        'error': f'PDF generation failed: {error_msg}',
                         'client_name': html_result.get('client_name', 'Unknown')
                     })
             else:
