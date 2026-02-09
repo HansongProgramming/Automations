@@ -16,6 +16,10 @@ class AccountSummarizer:
             'no_lending_decision': {
                 'title': 'No lending decision made',
                 'body': 'The account relates to a {account_type_lower}, not a credit agreement. As no credit was extended, the FCA\'s irresponsible lending rules do not apply. This type of account falls outside the scope of affordability assessments required for credit products.'
+            },
+            'insufficient_credit_evidence': {
+                'title': 'Insufficient evidence in credit file',
+                'body': 'At the time of lending ({lending_date}), the credit file showed minimal adverse information. Without evidence of defaults, CCJs, or significant payment issues visible in the credit report, there is insufficient basis to establish a claim for irresponsible lending. Any affordability concerns would need to be supported by income and expenditure documentation outside the credit file.'
             }
         }
         
@@ -180,6 +184,9 @@ class AccountSummarizer:
             'body': 'This account falls outside the scope of irresponsible lending claims.'
         })
         
+        # Determine color based on exclusion reason
+        color = 'orange' if exclusion_reason == 'insufficient_credit_evidence' else 'gray'
+        
         return {
             'name': lender,
             'type': account_type,
@@ -187,8 +194,10 @@ class AccountSummarizer:
             'start_date': start_date,
             'title': template['title'],
             'body': template['body'].format(
-                account_type_lower=self._format_account_type(account_type)
-            )
+                account_type_lower=self._format_account_type(account_type),
+                lending_date=start_date
+            ),
+            'color': color
         }
     
     def summarize_out_of_scope_grouped(self, lender: str, accounts: List[Dict], dates: List[str]) -> Dict[str, str]:
@@ -210,9 +219,24 @@ class AccountSummarizer:
         
         # Enhance body with date information
         date_info = f" Multiple accounts were opened on {self._format_date_list(dates)}." if dates else ""
+        
+        # Use first date for template formatting if available
+        lending_date = dates[0] if dates else 'Unknown'
+        
         body = template['body'].format(
-            account_type_lower=self._format_account_type(account_type)
-        ) + date_info
+            account_type_lower=self._format_account_type(account_type),
+            lending_date=lending_date
+        )
+        
+        # Add date info for insufficient_credit_evidence reason
+        if exclusion_reason == 'insufficient_credit_evidence' and date_info:
+            body = body.replace('At the time of lending', f'At the time of lending across multiple accounts')
+            body += date_info
+        else:
+            body += date_info
+        
+        # Determine color based on exclusion reason
+        color = 'orange' if exclusion_reason == 'insufficient_credit_evidence' else 'gray'
         
         return {
             'name': lender,
@@ -220,7 +244,8 @@ class AccountSummarizer:
             'account_numbers': account_numbers,  # List of all account numbers
             'start_dates': dates,  # List of all start dates
             'title': title,
-            'body': body
+            'body': body,
+            'color': color
         }
     
     def summarize_in_scope(self, account: Dict) -> Dict[str, str]:

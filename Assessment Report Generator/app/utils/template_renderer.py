@@ -210,6 +210,11 @@ class HTMLTemplateRenderer:
             border-color: #bbf7d0;
         }
 
+        .indicator-orange {
+            background: #ffedd5;
+            border-color: #fed7aa;
+        }
+
         .indicator-gray {
             background: white;
             border-color: #e5e7eb;
@@ -229,6 +234,10 @@ class HTMLTemplateRenderer:
 
         .dot-green {
             background: #22c55e;
+        }
+
+        .dot-orange {
+            background: #f97316;
         }
 
         .dot-gray {
@@ -454,8 +463,8 @@ class HTMLTemplateRenderer:
             <div class="card-body">
                 <div class="indicator-list">
                     {% for item in claims_analysis.out_of_scope %}
-                    <div class="indicator indicator-gray">
-                        <div class="indicator-dot dot-gray"></div>
+                    <div class="indicator indicator-{{ item.color | default('gray') }}">
+                        <div class="indicator-dot dot-{{ item.color | default('gray') }}"></div>
                         <div class="indicator-content">
                             <h3>
                                 {{ item.name }}
