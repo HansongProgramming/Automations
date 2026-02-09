@@ -98,7 +98,7 @@ class HTMLTemplateRenderer:
             transition: all 0.2s;
         }
 
-        .btn-primary {
+        .bt~mary {
             background-color: #3b82f6;
             color: white;
         }
@@ -277,6 +277,10 @@ class HTMLTemplateRenderer:
             .no-print {
                 display: none !important;
             }
+
+            .header {
+                position: static;
+            }
         }
 
         @media (max-width: 768px) {
@@ -293,7 +297,7 @@ class HTMLTemplateRenderer:
 </head>
 
 <body>
-    <div class="header no-print">
+    <div class="header">
         <div class="header-content">
             <div class="logo-section">
                 <img src="https://raw.githubusercontent.com/HansongProgramming/Automations/main/Assessment%20Report%20Generator/Main%20Logo.png"
@@ -305,8 +309,8 @@ class HTMLTemplateRenderer:
                 </div>
             </div>
             <div class="header-actions">
-                <button class="btn btn-primary" onclick="window.print()">Print</button>
-                <button class="btn btn-primary">Export</button>
+                <button class="btn btn-primary no-print" onclick="window.print()">Print</button>
+                <button class="btn btn-primary no-print">Export</button>
             </div>
         </div>
     </div>
@@ -332,7 +336,7 @@ class HTMLTemplateRenderer:
             </div>
         </div>
 
-        <div class="status-badge status-strong no-print">
+        <div class="status-badge status-strong">
             {% if traffic_light == 'GREEN' %}STRONG{% elif traffic_light == 'AMBER' %}MEDIUM{% elif traffic_light == 'RED' %}WEAK{% else %}{{ traffic_light }}{% endif %} CASE
         </div>
 
