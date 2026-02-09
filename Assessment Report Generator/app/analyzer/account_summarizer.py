@@ -16,6 +16,10 @@ class AccountSummarizer:
             'no_lending_decision': {
                 'title': 'No lending decision made',
                 'body': 'The account relates to a {account_type_lower}, not a credit agreement. As no credit was extended, the FCA\'s irresponsible lending rules do not apply. This type of account falls outside the scope of affordability assessments required for credit products.'
+            },
+            'insufficient_credit_evidence': {
+                'title': 'Insufficient evidence in credit file',
+                'body': 'At the time of lending ({lending_date}), the credit file showed minimal adverse information. Without evidence of defaults, CCJs, or significant payment issues visible in the credit report, there is insufficient basis to establish a claim for irresponsible lending. Any affordability concerns would need to be supported by income and expenditure documentation outside the credit file.'
             }
         }
         
@@ -187,7 +191,8 @@ class AccountSummarizer:
             'start_date': start_date,
             'title': template['title'],
             'body': template['body'].format(
-                account_type_lower=self._format_account_type(account_type)
+                account_type_lower=self._format_account_type(account_type),
+                lending_date=start_date
             )
         }
     
@@ -210,9 +215,21 @@ class AccountSummarizer:
         
         # Enhance body with date information
         date_info = f" Multiple accounts were opened on {self._format_date_list(dates)}." if dates else ""
+        
+        # Use first date for template formatting if available
+        lending_date = dates[0] if dates else 'Unknown'
+        
         body = template['body'].format(
-            account_type_lower=self._format_account_type(account_type)
-        ) + date_info
+            account_type_lower=self._format_account_type(account_type),
+            lending_date=lending_date
+        )
+        
+        # Add date info for insufficient_credit_evidence reason
+        if exclusion_reason == 'insufficient_credit_evidence' and date_info:
+            body = body.replace('At the time of lending', f'At the time of lending across multiple accounts')
+            body += date_info
+        else:
+            body += date_info
         
         return {
             'name': lender,

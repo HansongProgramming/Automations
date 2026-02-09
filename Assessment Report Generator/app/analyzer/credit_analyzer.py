@@ -492,11 +492,49 @@ class CreditReportAnalyzer:
                 
                 is_subprime = any(sp in lender_upper for sp in SUBPRIME_LENDERS)
                 
-                in_scope_raw.append({
-                    **account_summary,
-                    'is_subprime_lender': is_subprime,
-                    'risk_indicators_at_lending': risk_indicators
-                })
+                # Check if this is a "clean profile" case with insufficient evidence
+                risk_level = self._assess_risk_level(risk_indicators)
+                has_default = default_date and default_date != 'N/A'
+                payment_history = account.get('payment_history', [])
+                arrears_count = sum(1 for p in payment_history if p['code'] in ['1', '2', '3', '4', '5', '6', 'A', 'B'])
+                
+                # If clean profile (low risk) with no default and minimal arrears, classify as out-of-scope
+                if risk_level == 'low' and not has_default and arrears_count <= 2:
+                    out_of_scope_raw.append({
+                        'lender': lender,
+                        'account_type': account_type,
+                        'account_number': account_num,
+                        'start_date': start_date,
+                        'loan_value': loan_value,
+                        'credit_limit': credit_limit,
+                        'default_date': default_date,
+                        'payment_history_summary': {
+                            'total_entries': len(payment_history),
+                            'defaults': sum(1 for p in payment_history if p['code'] == 'D'),
+                            'arrears': arrears_count,
+                            'arrangement_to_pay': sum(1 for p in payment_history if p['code'] == 'I')
+                        },
+                        'exclusion_reason': 'insufficient_credit_evidence',
+                        'notes': 'Clean credit profile at lending - insufficient evidence in credit file to support claim'
+                    })
+                else:
+                    in_scope_raw.append({
+                        'lender': lender,
+                        'account_type': account_type,
+                        'account_number': account_num,
+                        'start_date': start_date,
+                        'loan_value': loan_value,
+                        'credit_limit': credit_limit,
+                        'default_date': default_date,
+                        'payment_history_summary': {
+                            'total_entries': len(payment_history),
+                            'defaults': sum(1 for p in payment_history if p['code'] == 'D'),
+                            'arrears': arrears_count,
+                            'arrangement_to_pay': sum(1 for p in payment_history if p['code'] == 'I')
+                        },
+                        'is_subprime_lender': is_subprime,
+                        'risk_indicators_at_lending': risk_indicators
+                    })
         
         # Group by lender
         in_scope_grouped = self._group_accounts_by_lender(in_scope_raw)
@@ -586,6 +624,25 @@ class CreditReportAnalyzer:
                     pass
         
         return risk_flags
+    
+    def _assess_risk_level(self, risk_indicators: Dict[str, Any]) -> str:
+        """Assess overall risk level from risk indicators. Returns 'low', 'moderate', or 'high'."""
+        if risk_indicators.get('unable_to_determine'):
+            return 'unknown'
+        
+        risk_score = 0
+        risk_score += risk_indicators.get('active_ccjs_at_lending', 0) * 3
+        risk_score += risk_indicators.get('active_defaults_at_lending', 0) * 3
+        risk_score += risk_indicators.get('accounts_in_arrears_at_lending', 0)
+        if risk_indicators.get('recent_payment_issues'):
+            risk_score += 2
+        
+        if risk_score >= 6:
+            return 'high'
+        elif risk_score >= 3:
+            return 'moderate'
+        else:
+            return 'low'
     
     def analyze(self) -> Dict[str, Any]:
         """Main analysis method that returns JSON-ready results"""

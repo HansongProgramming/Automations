@@ -113,14 +113,6 @@
             "body": "When this credit was approved (23/04/2020), the credit file indicated 1 existing default. The approval raises questions about whether proper affordability assessments were conducted, particularly regarding the applicant's ability to repay without financial difficulty."
           },
           {
-            "name": "ADVANTAGE FINANCE LTD",
-            "type": "Hire Purchase",
-            "account_number": "293A118900",
-            "start_date": "04/07/2017",
-            "title": "Credit approved with clean profile",
-            "body": "At the time of lending (04/07/2017), the credit file showed minimal adverse information.  While this suggests reasonable lending at origination, any subsequent affordability issues would depend on income verification and expenditure checks not visible in the credit file."
-          },
-          {
             "name": "EE FLEX PAY",
             "type": "Unsecured Loan",
             "account_numbers": [
@@ -237,6 +229,14 @@
             "start_date": "05/09/2008",
             "title": "No lending decision made",
             "body": "The account relates to a current account, not a credit agreement. As no credit was extended, the FCA's irresponsible lending rules do not apply. This type of account falls outside the scope of affordability assessments required for credit products."
+          },
+          {
+            "name": "ADVANTAGE FINANCE LTD",
+            "type": "Hire Purchase",
+            "account_number": "293A118900",
+            "start_date": "04/07/2017",
+            "title": "Insufficient evidence in credit file",
+            "body": "At the time of lending (04/07/2017), the credit file showed minimal adverse information. Without evidence of defaults, CCJs, or significant payment issues visible in the credit report, there is insufficient basis to establish a claim for irresponsible lending. Any affordability concerns would need to be supported by income and expenditure documentation outside the credit file."
           },
           {
             "name": "LANTERN DEBT RECOVERY SERVICES LTD",
