@@ -459,8 +459,8 @@ class HTMLTemplateRenderer:
             <div class="card-body">
                 <div class="indicator-list">
                     {% for item in claims_analysis.out_of_scope %}
-                    <div class="indicator indicator-orange">
-                        <div class="indicator-dot dot-orange"></div>
+                    <div class="indicator indicator-{{ item.color | default('gray') }}">
+                        <div class="indicator-dot dot-{{ item.color | default('gray') }}"></div>
                         <div class="indicator-content">
                             <h3>
                                 {{ item.name }}

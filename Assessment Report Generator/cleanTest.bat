@@ -5,3 +5,4 @@ rmdir html_reports /s /q
 rmdir complete_package /s /q
 rmdir test_output /s /q
 rmdir pdf_reports /s /q
+echo Cleanup complete.

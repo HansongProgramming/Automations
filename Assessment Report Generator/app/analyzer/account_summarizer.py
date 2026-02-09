@@ -184,6 +184,9 @@ class AccountSummarizer:
             'body': 'This account falls outside the scope of irresponsible lending claims.'
         })
         
+        # Determine color based on exclusion reason
+        color = 'orange' if exclusion_reason == 'insufficient_credit_evidence' else 'gray'
+        
         return {
             'name': lender,
             'type': account_type,
@@ -193,7 +196,8 @@ class AccountSummarizer:
             'body': template['body'].format(
                 account_type_lower=self._format_account_type(account_type),
                 lending_date=start_date
-            )
+            ),
+            'color': color
         }
     
     def summarize_out_of_scope_grouped(self, lender: str, accounts: List[Dict], dates: List[str]) -> Dict[str, str]:
@@ -231,13 +235,17 @@ class AccountSummarizer:
         else:
             body += date_info
         
+        # Determine color based on exclusion reason
+        color = 'orange' if exclusion_reason == 'insufficient_credit_evidence' else 'gray'
+        
         return {
             'name': lender,
             'type': account_type,
             'account_numbers': account_numbers,  # List of all account numbers
             'start_dates': dates,  # List of all start dates
             'title': title,
-            'body': body
+            'body': body,
+            'color': color
         }
     
     def summarize_in_scope(self, account: Dict) -> Dict[str, str]:
