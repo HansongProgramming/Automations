@@ -35,6 +35,16 @@ app = FastAPI(
     version="1.0.0"
 )
 
+@app.on_event("startup")
+async def startup_event():
+    """Force Windows ProactorEventLoop on startup"""
+    if sys.platform == 'win32':
+        loop = asyncio.get_event_loop()
+        logger.info(f"Event loop type: {type(loop).__name__}")
+        if not isinstance(loop, asyncio.ProactorEventLoop):
+            logger.warning("Event loop is not ProactorEventLoop, attempting to set policy...")
+            asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
