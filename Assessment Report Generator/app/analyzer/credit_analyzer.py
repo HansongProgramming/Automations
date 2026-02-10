@@ -104,7 +104,8 @@ class CreditReportAnalyzer:
                 elif 'Default Date' in account_text and 'N/A' in account_text:
                     account_data['Default Date'] = 'N/A'
                 
-                lender_match = re.search(r'from ([A-Z\s&\(\)\.]+?)(?:\(I\)|\d)', account_text)
+                # Fixed regex to properly capture company names with numbers (O2, Loans 2 Go, etc.)
+                lender_match = re.search(r'from ([A-Z0-9\s&\(\)\.]+?)(?:\s+\(I\)|\s+Account Number|\n)', account_text)
                 if lender_match:
                     account_data['Lender'] = lender_match.group(1).strip()
                 
@@ -399,6 +400,22 @@ class CreditReportAnalyzer:
             "ZABLE", "INDIGO", "OCEAN", "PROVIDENT", "MORSES"
         ]
         
+        # Telecom companies are non-claimable
+        TELECOM_COMPANIES = [
+            "EE", "O2", "VODAPHONE", "VODAFONE", "SKY", "PHONE", "MOBILE",
+            "THREE", "VIRGIN MOBILE", "TESCO MOBILE", "GIFFGAFF", "LEBARA"
+        ]
+        
+        # Insolvent companies that cannot be claimed against
+        INSOLVENT_COMPANIES = [
+            "MORSES CLUB LTD", "MORSES CLUB",
+            "AMIGO LOANS LTD", "AMIGO LOANS", "AMIGO",
+            "INDIGO MICHAEL LTD", "INDIGO MICHAEL",
+            "AVELO LIMITED", "AVELO",
+            "LENDING WORKS", "LENDINGWORKS",
+            "RATESETTER"
+        ]
+        
         NON_CREDIT_TYPES = [
             "Current Account",
             "Comms Supply Account"
@@ -470,6 +487,9 @@ class CreditReportAnalyzer:
             
             is_debt_collector = any(keyword in lender_upper for keyword in DEBT_COLLECTORS)
             is_non_credit = account_type in NON_CREDIT_TYPES
+            is_telecom = any(keyword in lender_upper for keyword in TELECOM_COMPANIES)
+            is_insolvent = any(keyword in lender_upper for keyword in INSOLVENT_COMPANIES)
+            is_repair_lending = "REPAIR" in lender_upper and "LEND" in lender_upper
             
             if is_debt_collector:
                 out_of_scope_raw.append({
@@ -483,6 +503,27 @@ class CreditReportAnalyzer:
                     **account_summary,
                     'exclusion_reason': 'no_lending_decision',
                     'notes': f'{account_type} is not a credit agreement - FCA irresponsible lending rules do not apply'
+                })
+            
+            elif is_telecom:
+                out_of_scope_raw.append({
+                    **account_summary,
+                    'exclusion_reason': 'telecoms_provider',
+                    'notes': 'Telecommunications service provider - not subject to irresponsible lending claims'
+                })
+            
+            elif is_insolvent:
+                out_of_scope_raw.append({
+                    **account_summary,
+                    'exclusion_reason': 'company_insolvent',
+                    'notes': 'Company is insolvent and no longer in business - cannot pursue claim'
+                })
+            
+            elif is_repair_lending:
+                out_of_scope_raw.append({
+                    **account_summary,
+                    'exclusion_reason': 'repair_lending',
+                    'notes': 'Repair lending agreement - secured against property, not considered irresponsible lending risk'
                 })
             
             else:

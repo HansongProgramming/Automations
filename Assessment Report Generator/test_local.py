@@ -9,7 +9,10 @@ from pathlib import Path
 import time
 import zipfile
 from io import BytesIO
+import os
+import shutil
 
+from app import claim_letters
 # Your test URLs
 TEST_URLS = [
     "https://api.boshhhfintech.com/File/CreditReport/95d1ce7e-2c3c-49d5-a303-6a4727f91005?Auth=af26383640b084af4d2895307480ed795c334405b786d7419d78be541fcc0656",
@@ -591,9 +594,29 @@ def interactive_menu():
         
         input("\n  Press Enter to continue...")
 
+def cleanup_outputs():
+    folders = [
+        "test_output",
+        "claim_letters",
+        "complete_package",
+        "pdf_reports",
+        "html_reports",
+    ]
+
+    for folder in folders:
+        if os.path.exists(folder):
+            try:
+                shutil.rmtree(folder)
+                print(f"🧹 Removed folder: {folder}")
+            except PermissionError as e:
+                print(f"❌ Permission denied removing {folder}: {e}")
+        else:
+            print(f"ℹ️ Folder not found: {folder}")
 
 if __name__ == "__main__":
     import sys
+
+    cleanup_outputs()
     
     # Check if interactive mode
     if len(sys.argv) > 1 and sys.argv[1] == '--menu':
@@ -602,8 +625,17 @@ if __name__ == "__main__":
         test_single_quick()
     elif len(sys.argv) > 1 and sys.argv[1] == '--benchmark':
         run_performance_benchmark()
+    elif sys.argv[1] == '--analyze':
+        test_analyze()
+    elif sys.argv[1] == '--pdf':
+        test_pdf_generation()
+    elif sys.argv[1] == '--html':
+        test_html_generation()
+    elif sys.argv[1] == '--letters':
+        test_claim_letters()
+    elif sys.argv[1] == '--combined':
+        test_combined_endpoint()
     else:
-        # Run all tests
         run_all_tests()
     
     print("\n✨ Testing complete!")

@@ -9,8 +9,9 @@ import zipfile
 from io import BytesIO
 import base64
 
+# Fix for Windows asyncio + Playwright subprocess support
 if sys.platform == 'win32':
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 from .models import AnalyzeRequest, AnalyzeResponse, SingleReportResult
 from .utils.html_fetcher import fetch_multiple_html
