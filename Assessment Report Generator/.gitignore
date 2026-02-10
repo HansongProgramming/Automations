@@ -12,6 +12,10 @@
 
 # Python cache
 __pycache__/
+/app/__pycache__/
+app/utils/__pycache__/
+app/analyzer/__pycache__/
+app/claim_letters/__pycache__/
 *.py[cod]
 *$py.class
 *.so

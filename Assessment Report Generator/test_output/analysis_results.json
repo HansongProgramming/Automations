@@ -1,6 +1,377 @@
 [
   {
-    "error": "Request timeout (30s)",
-    "url": "https://api.boshhhfintech.com/File/CreditReport/95d1ce7e-2c3c-49d5-a303-6a4727f91005?Auth=af26383640b084af4d2895307480ed795c334405b786d7419d78be541fcc0656"
+    "url": "https://api.boshhhfintech.com/File/CreditReport/95d1ce7e-2c3c-49d5-a303-6a4727f91005?Auth=af26383640b084af4d2895307480ed795c334405b786d7419d78be541fcc0656",
+    "credit_analysis": {
+      "client_info": {
+        "name": "RICHARD DAVIES",
+        "address": "00164 GWYNEDD AVENUE, L, SA1 6LL\nSWANSEA"
+      },
+      "indicators": {
+        "active_ccj": {
+          "flagged": true,
+          "points": 40
+        },
+        "multiple_ccjs": {
+          "flagged": true,
+          "points": 50
+        },
+        "active_default": {
+          "flagged": true,
+          "points": 30
+        },
+        "debt_collection": {
+          "flagged": true,
+          "points": 25
+        },
+        "ap_marker": {
+          "flagged": false,
+          "points": 0
+        },
+        "arrears_last_6_months": {
+          "flagged": false,
+          "points": 0
+        },
+        "credit_utilisation_over_80": {
+          "flagged": true,
+          "points": 15
+        },
+        "rapid_borrowing": {
+          "flagged": false,
+          "points": 0
+        },
+        "repeat_lending": {
+          "flagged": true,
+          "points": 25
+        }
+      },
+      "total_points": 185,
+      "traffic_light": "GREEN",
+      "claims_analysis": {
+        "in_scope": [
+          {
+            "name": "CAPITAL ONE (EUROPE) PLC",
+            "type": "Credit Card",
+            "account_number": "00015691735",
+            "start_date": "15/04/2024",
+            "title": "Potential irresponsible lending - high risk profile at approval",
+            "body": "At the time of lending (15/04/2024), the applicant's credit file showed 4 active CCJs and 11 existing defaults. Despite these red flags, credit was approved by a sub-prime lender. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
+          },
+          {
+            "name": "VANQUIS BANK",
+            "type": "Credit Card",
+            "account_number": "0113470XXXXXX0814",
+            "start_date": "22/05/2024",
+            "title": "Account defaulted - affordability concerns",
+            "body": "This account defaulted on 22/02/2025 with an outstanding balance of \u00a3716. The default occurred within the first year, suggesting the credit may have been unaffordable at the point of lending. The lender should have identified this risk through proper affordability checks."
+          },
+          {
+            "name": "JAJA FINANCE LIMITED",
+            "type": "Credit Card",
+            "account_number": "463396XXXXXX4069",
+            "start_date": "08/10/2024",
+            "title": "Potential irresponsible lending - high risk profile at approval",
+            "body": "At the time of lending (08/10/2024), the applicant's credit file showed 4 active CCJs and 12 existing defaults. Despite these red flags, credit was approved by a sub-prime lender. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
+          },
+          {
+            "name": "ZABLE",
+            "type": "Credit Card",
+            "account_number": "45839657",
+            "start_date": "06/11/2020",
+            "title": "Account defaulted - affordability concerns",
+            "body": "This account defaulted on 06/05/2022 with an outstanding balance of \u00a31544. The default occurred approximately 1 year after opening, suggesting the credit may have been unaffordable at the point of lending. The lender should have identified this risk through proper affordability checks."
+          },
+          {
+            "name": "FIRST RESPONSE FINANCE LTD",
+            "type": "Hire Purchase",
+            "account_number": "72388853",
+            "start_date": "23/07/2021",
+            "title": "Potential irresponsible lending - high risk profile at approval",
+            "body": "At the time of lending (23/07/2021), the applicant's credit file showed 2 active CCJs and 7 existing defaults. Despite these red flags, credit was approved. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
+          },
+          {
+            "name": "NEXT DIRECTORY",
+            "type": "Mail Order Account",
+            "account_number": "S5K71409X20210104",
+            "start_date": "02/01/2021",
+            "title": "Account defaulted - affordability concerns",
+            "body": "This account defaulted on 02/12/2021 with an outstanding balance of \u00a3649. The default occurred within the first year, suggesting the credit may have been unaffordable at the point of lending. The lender should have identified this risk through proper affordability checks."
+          },
+          {
+            "name": "ZILCH",
+            "type": "Budget Account",
+            "account_number": "C00121697",
+            "start_date": "08/01/2021",
+            "title": "Potential irresponsible lending - high risk profile at approval",
+            "body": "At the time of lending (08/01/2021), the applicant's credit file showed 5 existing defaults. Despite these red flags, credit was approved. This suggests the lender may not have conducted adequate affordability checks or may have lent irresponsibly to a vulnerable customer."
+          }
+        ],
+        "out_of_scope": [
+          {
+            "name": "EE LIMITED",
+            "type": "Comms Supply Account",
+            "account_number": "114029280",
+            "start_date": "29/03/2014",
+            "title": "No lending decision made",
+            "body": "The account relates to a communications supply service, not a credit agreement. As no credit was extended, the FCA's irresponsible lending rules do not apply. This type of account falls outside the scope of affordability assessments required for credit products.",
+            "color": "gray"
+          },
+          {
+            "name": "SKY MOBILE",
+            "type": "Comms Supply Account",
+            "account_number": "00000000623086989372",
+            "start_date": "05/08/2017",
+            "title": "No lending decision made",
+            "body": "The account relates to a communications supply service, not a credit agreement. As no credit was extended, the FCA's irresponsible lending rules do not apply. This type of account falls outside the scope of affordability assessments required for credit products.",
+            "color": "gray"
+          },
+          {
+            "name": "BT CONSUMER",
+            "type": "Comms Supply Account",
+            "account_number": "0212039379",
+            "start_date": "02/07/2013",
+            "title": "No lending decision made",
+            "body": "The account relates to a communications supply service, not a credit agreement. As no credit was extended, the FCA's irresponsible lending rules do not apply. This type of account falls outside the scope of affordability assessments required for credit products.",
+            "color": "gray"
+          },
+          {
+            "name": "HUTCHISON 3G UK LTD(I)",
+            "type": "Comms Supply Account",
+            "account_numbers": [
+              "963480716",
+              "970465484"
+            ],
+            "start_dates": [
+              "21/12/2015",
+              "26/08/2014"
+            ],
+            "title": "No lending decision made (2 accounts)",
+            "body": "The account relates to a communications supply service, not a credit agreement. As no credit was extended, the FCA's irresponsible lending rules do not apply. This type of account falls outside the scope of affordability assessments required for credit products. Multiple accounts were opened on 21/12/2015 and 26/08/2014.",
+            "color": "gray"
+          },
+          {
+            "name": "LOWELL PORTFOLIO 1 LTD",
+            "type": "Credit Card",
+            "account_numbers": [
+              "476856828",
+              "399697135",
+              "328323225"
+            ],
+            "start_dates": [
+              "11/01/2021",
+              "11/07/2017",
+              "22/05/2024"
+            ],
+            "title": "Debt purchaser - not original lender (3 accounts)",
+            "body": "This account is held by a debt collection agency or debt purchaser who acquired the debt after default. Claims for irresponsible lending must be directed at the original lender who made the lending decision, not subsequent debt owners. The original creditor would need to be identified to pursue any potential claim. Multiple accounts were opened on 11/01/2021, 11/07/2017, and 22/05/2024.",
+            "color": "gray"
+          },
+          {
+            "name": "INDIGO MICHAEL LTD",
+            "type": "Credit Card",
+            "account_number": "SNCACC0009957688",
+            "start_date": "11/11/2020",
+            "title": "Out of scope",
+            "body": "This account falls outside the scope of irresponsible lending claims.",
+            "color": "gray"
+          },
+          {
+            "name": "CABOT CREDIT MANAGEMENT GROUP LTD",
+            "type": "Credit Card",
+            "account_number": "39160695",
+            "start_date": "06/11/2020",
+            "title": "Debt purchaser - not original lender",
+            "body": "This account is held by a debt collection agency or debt purchaser who acquired the debt after default. Claims for irresponsible lending must be directed at the original lender who made the lending decision, not subsequent debt owners. The original creditor would need to be identified to pursue any potential claim.",
+            "color": "gray"
+          },
+          {
+            "name": "MONZO BANK LIMITED",
+            "type": "Current Account",
+            "account_number": "0004000499898575",
+            "start_date": "27/03/2021",
+            "title": "No lending decision made",
+            "body": "The account relates to a current account, not a credit agreement. As no credit was extended, the FCA's irresponsible lending rules do not apply. This type of account falls outside the scope of affordability assessments required for credit products.",
+            "color": "gray"
+          },
+          {
+            "name": "NATWEST BANK CURRENT ACCOUNTS",
+            "type": "Current Account",
+            "account_number": "556120697362510809",
+            "start_date": "05/09/2008",
+            "title": "No lending decision made",
+            "body": "The account relates to a current account, not a credit agreement. As no credit was extended, the FCA's irresponsible lending rules do not apply. This type of account falls outside the scope of affordability assessments required for credit products.",
+            "color": "gray"
+          },
+          {
+            "name": "SKY UK LTD",
+            "type": "Fixed Term Agreement",
+            "account_number": "00000000625020201848",
+            "start_date": "08/10/2024",
+            "title": "Out of scope",
+            "body": "This account falls outside the scope of irresponsible lending claims.",
+            "color": "gray"
+          },
+          {
+            "name": "ADVANTAGE FINANCE LTD",
+            "type": "Hire Purchase",
+            "account_number": "293A118900",
+            "start_date": "04/07/2017",
+            "title": "Insufficient evidence in credit file",
+            "body": "At the time of lending (04/07/2017), the credit file showed minimal adverse information. Without evidence of defaults, CCJs, or significant payment issues visible in the credit report, there is insufficient basis to establish a claim for irresponsible lending. Any affordability concerns would need to be supported by income and expenditure documentation outside the credit file.",
+            "color": "orange"
+          },
+          {
+            "name": "EE FLEX PAY",
+            "type": "Unsecured Loan",
+            "account_numbers": [
+              "354470002",
+              "354470003"
+            ],
+            "start_dates": [
+              "21/09/2024",
+              "21/10/2023"
+            ],
+            "title": "Out of scope (2 accounts)",
+            "body": "This account falls outside the scope of irresponsible lending claims. Multiple accounts were opened on 21/09/2024 and 21/10/2023.",
+            "color": "gray"
+          },
+          {
+            "name": "LANTERN DEBT RECOVERY SERVICES LTD",
+            "type": "Budget Account",
+            "account_numbers": [
+              "M7470536",
+              "M6902026",
+              "M6902027"
+            ],
+            "start_dates": [
+              "02/02/2021",
+              "12/11/2020",
+              "17/11/2020"
+            ],
+            "title": "Debt purchaser - not original lender (3 accounts)",
+            "body": "This account is held by a debt collection agency or debt purchaser who acquired the debt after default. Claims for irresponsible lending must be directed at the original lender who made the lending decision, not subsequent debt owners. The original creditor would need to be identified to pursue any potential claim. Multiple accounts were opened on 02/02/2021, 12/11/2020, and 17/11/2020.",
+            "color": "gray"
+          },
+          {
+            "name": "MORSES CLUB LTD",
+            "type": "Home Lending Agreement",
+            "account_number": "18162349/2",
+            "start_date": "02/02/2021",
+            "title": "Out of scope",
+            "body": "This account falls outside the scope of irresponsible lending claims.",
+            "color": "gray"
+          },
+          {
+            "name": "PERCH",
+            "type": "Credit Card",
+            "account_number": "2635205",
+            "start_date": "02/01/2021",
+            "title": "Debt purchaser - not original lender",
+            "body": "This account is held by a debt collection agency or debt purchaser who acquired the debt after default. Claims for irresponsible lending must be directed at the original lender who made the lending decision, not subsequent debt owners. The original creditor would need to be identified to pursue any potential claim.",
+            "color": "gray"
+          },
+          {
+            "name": "SANTANDER CURRENT ACCOUNT",
+            "type": "Current Account",
+            "account_number": "09012673221055",
+            "start_date": "26/10/2001",
+            "title": "No lending decision made",
+            "body": "The account relates to a current account, not a credit agreement. As no credit was extended, the FCA's irresponsible lending rules do not apply. This type of account falls outside the scope of affordability assessments required for credit products.",
+            "color": "gray"
+          }
+        ],
+        "credit_timeline": {
+          "ccjs": [
+            {
+              "date": "2023-05-17",
+              "amount": 155500,
+              "court": "COUNTY COURT BUSINESS CEN"
+            },
+            {
+              "date": "2021-02-09",
+              "amount": 54100,
+              "court": "COUNTY COURT BUSINESS CEN"
+            },
+            {
+              "date": "2021-02-09",
+              "amount": 38700,
+              "court": "COUNTY COURT BUSINESS CEN"
+            },
+            {
+              "date": "2021-12-03",
+              "amount": 254600,
+              "court": "COUNTY COURT BUSINESS CEN"
+            }
+          ],
+          "defaults": [
+            {
+              "lender": "LOWELL PORTFOLIO 1 LTD",
+              "date": "22/05/2024",
+              "amount": "\u00a3716"
+            },
+            {
+              "lender": "INDIGO MICHAEL LTD",
+              "date": "11/08/2022",
+              "amount": "\u00a31001"
+            },
+            {
+              "lender": "VANQUIS BANK",
+              "date": "22/02/2025",
+              "amount": "\u00a3716"
+            },
+            {
+              "lender": "ZABLE",
+              "date": "06/05/2022",
+              "amount": "\u00a31544"
+            },
+            {
+              "lender": "CABOT CREDIT MANAGEMENT GROUP LTD",
+              "date": "06/11/2020",
+              "amount": "\u00a31543"
+            },
+            {
+              "lender": "LOWELL PORTFOLIO 1 LTD",
+              "date": "11/01/2021",
+              "amount": "\u00a3524"
+            },
+            {
+              "lender": "NEXT DIRECTORY",
+              "date": "02/12/2021",
+              "amount": "\u00a3649"
+            },
+            {
+              "lender": "LOWELL PORTFOLIO 1 LTD",
+              "date": "11/07/2017",
+              "amount": "\u00a31532"
+            },
+            {
+              "lender": "LANTERN DEBT RECOVERY SERVICES LTD",
+              "date": "12/11/2020",
+              "amount": "\u00a31000"
+            },
+            {
+              "lender": "MORSES CLUB LTD",
+              "date": "02/11/2021",
+              "amount": "\u00a3306"
+            },
+            {
+              "lender": "LANTERN DEBT RECOVERY SERVICES LTD",
+              "date": "02/02/2021",
+              "amount": "\u00a3175"
+            },
+            {
+              "lender": "LANTERN DEBT RECOVERY SERVICES LTD",
+              "date": "17/11/2020",
+              "amount": "\u00a359"
+            },
+            {
+              "lender": "PERCH",
+              "date": "02/01/2021",
+              "amount": "\u00a3459"
+            }
+          ],
+          "arrears_pattern": []
+        }
+      }
+    }
   }
 ]
