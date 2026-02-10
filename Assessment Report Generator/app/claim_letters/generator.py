@@ -16,7 +16,7 @@ import re
 
 # Try to import config, fall back to defaults if not available
 try:
-    from config_claim_letters import (
+    from .config import (
         DEFAULT_OUTPUT_DIR, 
         DEFENDANT_ADDRESSES,
         AGREEMENT_TYPES
@@ -226,7 +226,7 @@ class ClaimLetterGenerator:
     @staticmethod
     def get_defendant_address(defendant_name: str, in_scope_item: Dict[str, Any]) -> str:
         """
-        Get defendant address from config or JSON.
+        Get defendant address from config or JSON with flexible matching.
         
         Args:
             defendant_name: Name of the defendant
@@ -235,9 +235,31 @@ class ClaimLetterGenerator:
         Returns:
             Address string
         """
-        # First try the config
+        # First try exact match (case-sensitive)
         if defendant_name in DEFENDANT_ADDRESSES:
             return DEFENDANT_ADDRESSES[defendant_name]
+        
+        # Try exact match (case-insensitive)
+        defendant_upper = defendant_name.upper()
+        for key, address in DEFENDANT_ADDRESSES.items():
+            if key.upper() == defendant_upper:
+                return address
+        
+        # Try partial match - check if any config key is contained in the defendant name
+        # This handles cases like "MONEYBARN NO" matching "Moneybarn No. 1 Limited"
+        for key, address in DEFENDANT_ADDRESSES.items():
+            # Normalize both strings for comparison
+            key_normalized = key.upper().replace('.', '').replace(',', '')
+            name_normalized = defendant_name.upper().replace('.', '').replace(',', '')
+            
+            # Check if the key is a substring of the defendant name
+            if key_normalized in name_normalized:
+                return address
+            
+            # Also try the reverse - check if defendant name starts with the key
+            # This handles "VANQUIS BANK" matching "Vanquis Bank Ltd"
+            if name_normalized.startswith(key_normalized):
+                return address
         
         # Try to get from JSON if available
         if 'address' in in_scope_item:

@@ -637,5 +637,7 @@ if __name__ == "__main__":
         test_combined_endpoint()
     else:
         run_all_tests()
+
+    cleanup_outputs()
     
     print("\n✨ Testing complete!")
