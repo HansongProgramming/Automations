@@ -1,0 +1,79 @@
+{
+  "_comment": "Configuration file for lending analysis business rules. Modify this file to update rules without changing code.",
+  "_instructions": {
+    "debt_collectors": "Companies that purchase debts - accounts from these are out of scope",
+    "subprime_lenders": "High-risk lenders that target customers with poor credit",
+    "telecom_companies": "Telecommunications providers - not subject to lending claims",
+    "insolvent_companies": "Companies no longer in business - cannot pursue claims",
+    "non_credit_account_types": "Account types that don't involve lending decisions",
+    "repair_lending_patterns": "Keywords that identify repair lending (secured, not risky)"
+  },
+  "debt_collectors": [
+    "LOWELL",
+    "CABOT",
+    "PRA",
+    "LANTERN",
+    "PERCH",
+    "WESCOT",
+    "INTRUM",
+    "RESOLVE",
+    "FAIRFAX",
+    "PORTFOLIO",
+    "RECOVER",
+    "RECOVERY",
+    "COLLECTION",
+    "DEBT",
+    "HOLDINGS"
+  ],
+  "subprime_lenders": [
+    "VANQUIS",
+    "AQUA",
+    "NEWDAY",
+    "CAPITAL ONE",
+    "JAJA",
+    "ZABLE",
+    "INDIGO",
+    "OCEAN",
+    "PROVIDENT",
+    "MORSES"
+  ],
+  "telecom_companies": [
+    "EE",
+    "O2",
+    "VODAPHONE",
+    "VODAFONE",
+    "SKY",
+    "PHONE",
+    "MOBILE",
+    "THREE",
+    "VIRGIN MOBILE",
+    "TESCO MOBILE",
+    "GIFFGAFF",
+    "LEBARA",
+    "BT",
+    "TALK TALK",
+    "PLUSNET"
+  ],
+  "insolvent_companies": [
+    "MORSES CLUB LTD",
+    "MORSES CLUB",
+    "AMIGO LOANS LTD",
+    "AMIGO LOANS",
+    "AMIGO",
+    "INDIGO MICHAEL LTD",
+    "INDIGO MICHAEL",
+    "AVELO LIMITED",
+    "AVELO",
+    "LENDING WORKS",
+    "LENDINGWORKS",
+    "RATESETTER"
+  ],
+  "non_credit_account_types": [
+    "Current Account",
+    "Comms Supply Account"
+  ],
+  "repair_lending_patterns": [
+    "REPAIR LEND",
+    "REPAIR LOAN"
+  ]
+}

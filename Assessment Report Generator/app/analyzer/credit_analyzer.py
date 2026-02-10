@@ -1,6 +1,8 @@
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 import re
+import json
+from pathlib import Path
 from typing import Dict, List, Any
 from collections import defaultdict
 from .account_summarizer import AccountSummarizer
@@ -20,6 +22,46 @@ class CreditReportAnalyzer:
         self.negative_codes = ['1', '2', '3', '4', '5', '6', 'A', 'B', 'D', 'R', 'W', 'V']
         self.arrears_codes = ['1', '2', '3', '4', '5', '6', 'A', 'B']
         self.severe_codes = ['D', 'R', 'W', 'V']
+        
+        # Load business rules from configuration file
+        self._load_config()
+    
+    def _load_config(self):
+        """Load business rules from JSON configuration file."""
+        config_path = Path(__file__).parent / 'lending_rules_config.json'
+        
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+            
+            # Load all rule categories from config
+            self.DEBT_COLLECTORS = config.get('debt_collectors', [])
+            self.SUBPRIME_LENDERS = config.get('subprime_lenders', [])
+            self.TELECOM_COMPANIES = config.get('telecom_companies', [])
+            self.INSOLVENT_COMPANIES = config.get('insolvent_companies', [])
+            self.NON_CREDIT_TYPES = config.get('non_credit_account_types', [])
+            self.REPAIR_LENDING_PATTERNS = config.get('repair_lending_patterns', [])
+            
+        except FileNotFoundError:
+            # Fallback to defaults if config file not found
+            print(f"Warning: Config file not found at {config_path}. Using default rules.")
+            self._load_default_rules()
+        except json.JSONDecodeError as e:
+            print(f"Warning: Error parsing config file: {e}. Using default rules.")
+            self._load_default_rules()
+    
+    def _load_default_rules(self):
+        """Load default rules if config file is not available."""
+        self.DEBT_COLLECTORS = ["LOWELL", "CABOT", "PRA", "LANTERN", "PERCH", "WESCOT",
+                                "INTRUM", "RESOLVE", "FAIRFAX", "PORTFOLIO", "RECOVER",
+                                "RECOVERY", "COLLECTION", "DEBT", "HOLDINGS"]
+        self.SUBPRIME_LENDERS = ["VANQUIS", "AQUA", "NEWDAY", "CAPITAL ONE", "JAJA",
+                                 "ZABLE", "INDIGO", "OCEAN", "PROVIDENT", "MORSES"]
+        self.TELECOM_COMPANIES = ["EE", "O2", "VODAPHONE", "VODAFONE", "SKY", "PHONE", "MOBILE"]
+        self.INSOLVENT_COMPANIES = ["MORSES CLUB", "AMIGO LOANS", "INDIGO MICHAEL",
+                                    "AVELO", "LENDING WORKS", "RATESETTER"]
+        self.NON_CREDIT_TYPES = ["Current Account", "Comms Supply Account"]
+        self.REPAIR_LENDING_PATTERNS = ["REPAIR LEND", "REPAIR LOAN"]
         
     def parse_ccj_data(self) -> List[Dict[str, Any]]:
         """Extract County Court Judgement (CCJ) data with deduplication"""
@@ -211,19 +253,13 @@ class CreditReportAnalyzer:
     
     def check_debt_collection(self, accounts: List[Dict]) -> tuple[bool, int]:
         """Check if accounts are with debt collection agencies. Returns (flagged, points)"""
-        DEBT_KEYWORDS = [
-            "LOWELL", "CABOT", "PRA", "LANTERN", "PERCH", "WESCOT",
-            "INTRUM", "RESOLVE", "FAIRFAX", "PORTFOLIO", "RECOVER",
-            "RECOVERY", "COLLECTION", "DEBT", "HOLDINGS"
-        ]
-        
         collection_accounts = []
         
         for account in accounts:
             account_num = account.get('Account Number', 'Unknown')
             lender = account.get('Lender', '').upper()
             
-            for keyword in DEBT_KEYWORDS:
+            for keyword in self.DEBT_COLLECTORS:
                 if keyword in lender:
                     collection_accounts.append(account_num)
                     break
@@ -389,38 +425,6 @@ class CreditReportAnalyzer:
     
     def categorize_accounts_for_claims(self, accounts: List[Dict], ccjs: List[Dict]) -> Dict[str, List[Dict]]:
         """Categorize accounts into potential in-scope and out-of-scope claims."""
-        DEBT_COLLECTORS = [
-            "LOWELL", "CABOT", "PRA", "LANTERN", "PERCH", "WESCOT",
-            "INTRUM", "RESOLVE", "FAIRFAX", "PORTFOLIO", "RECOVER",
-            "RECOVERY", "COLLECTION", "DEBT", "HOLDINGS"
-        ]
-        
-        SUBPRIME_LENDERS = [
-            "VANQUIS", "AQUA", "NEWDAY", "CAPITAL ONE", "JAJA",
-            "ZABLE", "INDIGO", "OCEAN", "PROVIDENT", "MORSES"
-        ]
-        
-        # Telecom companies are non-claimable
-        TELECOM_COMPANIES = [
-            "EE", "O2", "VODAPHONE", "VODAFONE", "SKY", "PHONE", "MOBILE",
-            "THREE", "VIRGIN MOBILE", "TESCO MOBILE", "GIFFGAFF", "LEBARA"
-        ]
-        
-        # Insolvent companies that cannot be claimed against
-        INSOLVENT_COMPANIES = [
-            "MORSES CLUB LTD", "MORSES CLUB",
-            "AMIGO LOANS LTD", "AMIGO LOANS", "AMIGO",
-            "INDIGO MICHAEL LTD", "INDIGO MICHAEL",
-            "AVELO LIMITED", "AVELO",
-            "LENDING WORKS", "LENDINGWORKS",
-            "RATESETTER"
-        ]
-        
-        NON_CREDIT_TYPES = [
-            "Current Account",
-            "Comms Supply Account"
-        ]
-        
         # Separate accounts into in-scope and out-of-scope first
         in_scope_raw = []
         out_of_scope_raw = []
@@ -485,11 +489,11 @@ class CreditReportAnalyzer:
                 }
             }
             
-            is_debt_collector = any(keyword in lender_upper for keyword in DEBT_COLLECTORS)
-            is_non_credit = account_type in NON_CREDIT_TYPES
-            is_telecom = any(keyword in lender_upper for keyword in TELECOM_COMPANIES)
-            is_insolvent = any(keyword in lender_upper for keyword in INSOLVENT_COMPANIES)
-            is_repair_lending = "REPAIR" in lender_upper and "LEND" in lender_upper
+            is_debt_collector = any(keyword in lender_upper for keyword in self.DEBT_COLLECTORS)
+            is_non_credit = account_type in self.NON_CREDIT_TYPES
+            is_telecom = any(keyword in lender_upper for keyword in self.TELECOM_COMPANIES)
+            is_insolvent = any(keyword in lender_upper for keyword in self.INSOLVENT_COMPANIES)
+            is_repair_lending = any(pattern in lender_upper for pattern in self.REPAIR_LENDING_PATTERNS)
             
             if is_debt_collector:
                 out_of_scope_raw.append({
@@ -531,7 +535,7 @@ class CreditReportAnalyzer:
                     start_date, ccjs, accounts, account
                 )
                 
-                is_subprime = any(sp in lender_upper for sp in SUBPRIME_LENDERS)
+                is_subprime = any(sp in lender_upper for sp in self.SUBPRIME_LENDERS)
                 
                 # Check if this is a "clean profile" case with insufficient evidence
                 risk_level = self._assess_risk_level(risk_indicators)
