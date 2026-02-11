@@ -547,21 +547,21 @@ async def generate_claim_letters(analysis_results: List[Dict[str, Any]]):
 @app.post("/analyze-pdf-and-letters")
 async def analyze_pdf_and_letters(request: AnalyzeRequest):
     """
-    COMBINED ENDPOINT: Analyze credit reports and generate both PDFs and Claim Letters.
+    COMBINED ENDPOINT: Analyze credit reports and generate both PDFs, HTML, and Claim Letters.
     
     This endpoint does everything in one call:
     1. Analyzes credit reports from URLs
-    2. Generates PDF reports
-    3. Generates Letters of Claim for all in-scope lenders (with DYNAMIC bank details)
+    2. Generates HTML reports
+    3. Generates PDF reports
+    4. Generates Letters of Claim for all in-scope lenders (with DYNAMIC bank details)
     
     Bank details in letters are extracted from JSON:
     - Bank: Defendant/lender name
     - Account Name: Client name
     - Account Number/Sort Code: From bank_details in JSON (or "TBC")
     
-    Returns a ZIP file containing:
-    - PDF reports (one per client)
-    - Claim letters (one per in-scope lender per client)
+    Returns JSON array of files with base64-encoded content, organized by client.
+    Each file includes metadata for organizing into folders in n8n:
     
     Example request:
     ```json
@@ -573,16 +573,34 @@ async def analyze_pdf_and_letters(request: AnalyzeRequest):
     }
     ```
     
-    Returns: ZIP file with structure:
-    ```
-    analysis_20260131_143022.zip
-    ├── pdfs/
-    │   ├── JOHN_DOE_credit_report.pdf
-    │   └── JANE_SMITH_credit_report.pdf
-    └── claim_letters/
-        ├── JOHN_DOE_VANQUIS_BANK_LOC.docx
-        ├── JOHN_DOE_CAPITAL_ONE_LOC.docx
-        └── JANE_SMITH_INDIGO_LOC.docx
+    Returns: JSON array of files:
+    ```json
+    [
+        {
+            "client_name": "JOHN_DOE",
+            "file_type": "PDF",
+            "filename": "JOHN_DOE_credit_report.pdf",
+            "file_content_base64": "JVBERi0x...",
+            "suggested_path": "JOHN_DOE/PDF/",
+            "size_bytes": 12345
+        },
+        {
+            "client_name": "JOHN_DOE",
+            "file_type": "HTML",
+            "filename": "JOHN_DOE_credit_report.html",
+            "file_content_base64": "PCFET0NUW...",
+            "suggested_path": "JOHN_DOE/HTML/",
+            "size_bytes": 98765
+        },
+        {
+            "client_name": "JOHN_DOE",
+            "file_type": "DOCX",
+            "filename": "JOHN_DOE_VANQUIS_BANK_LOC.docx",
+            "file_content_base64": "UEsDBBQA...",
+            "suggested_path": "JOHN_DOE/LOCS/",
+            "size_bytes": 45678
+        }
+    ]
     ```
     """
     urls = request.urls
@@ -618,39 +636,65 @@ async def analyze_pdf_and_letters(request: AnalyzeRequest):
         logger.info(f"Analysis complete: {len(analysis_results)} results")
         
         # ==========================================
-        # STEP 2: GENERATE PDFs
+        # STEP 2: GENERATE HTML & PDFs
         # ==========================================
-        logger.info("Step 2: Generating PDF reports...")
+        logger.info("Step 2: Generating HTML and PDF reports...")
         html_results = html_renderer.render_multiple(analysis_results)
         
-        pdf_files = {}  # {filename: pdf_bytes}
+        # Array to store all files for JSON response
+        all_files = []
         
         for html_result in html_results:
             if 'error' not in html_result and 'html' in html_result:
                 try:
                     client_name = html_result.get('client_name', 'Unknown')
+                    safe_name = client_name.replace(' ', '_').replace('/', '_')
                     
-                    # Generate PDF
+                    # ==========================================
+                    # ADD HTML FILE
+                    # ==========================================
+                    html_filename = f"{safe_name}_credit_report.html"
+                    html_bytes = html_result['html'].encode('utf-8')
+                    html_base64 = base64.b64encode(html_bytes).decode('utf-8')
+                    
+                    all_files.append({
+                        "client_name": safe_name,
+                        "file_type": "HTML",
+                        "filename": html_filename,
+                        "file_content_base64": html_base64,
+                        "suggested_path": f"{safe_name}/HTML/",
+                        "size_bytes": len(html_bytes)
+                    })
+                    logger.info(f"  ✓ HTML: {html_filename} ({len(html_bytes):,} bytes)")
+                    
+                    # ==========================================
+                    # GENERATE AND ADD PDF FILE
+                    # ==========================================
                     pdf_bytes = await pdf_generator.html_string_to_pdf(
                         html_result['html'],
                         client_name
                     )
                     
-                    # Clean filename
-                    safe_name = client_name.replace(' ', '_').replace('/', '_')
-                    filename = f"{safe_name}_credit_report.pdf"
+                    pdf_filename = f"{safe_name}_credit_report.pdf"
+                    pdf_base64 = base64.b64encode(pdf_bytes).decode('utf-8')
                     
-                    pdf_files[filename] = pdf_bytes
-                    logger.info(f"  ✓ PDF: {filename} ({len(pdf_bytes):,} bytes)")
+                    all_files.append({
+                        "client_name": safe_name,
+                        "file_type": "PDF",
+                        "filename": pdf_filename,
+                        "file_content_base64": pdf_base64,
+                        "suggested_path": f"{safe_name}/PDF/",
+                        "size_bytes": len(pdf_bytes)
+                    })
+                    logger.info(f"  ✓ PDF: {pdf_filename} ({len(pdf_bytes):,} bytes)")
                     
                 except Exception as e:
-                    logger.error(f"  ✗ PDF failed for {client_name}: {e}")
+                    logger.error(f"  ✗ HTML/PDF failed for {client_name}: {e}")
         
         # ==========================================
         # STEP 3: GENERATE CLAIM LETTERS
         # ==========================================
         logger.info("Step 3: Generating Letters of Claim...")
-        letter_files = {}  # {filename: docx_bytes}
         
         for report_data in analysis_results:
             if 'error' in report_data:
@@ -683,11 +727,6 @@ async def analyze_pdf_and_letters(request: AnalyzeRequest):
                     import tempfile
                     import os
                     
-                    # Use the enhanced generate_letter method that includes:
-                    # - Metric extraction from credit data
-                    # - Conditional section removal
-                    # - Placeholder replacement with calculated values
-                    
                     # Create a temporary file for the letter
                     with tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='.docx') as tmp_file:
                         tmp_path = tmp_file.name
@@ -702,9 +741,20 @@ async def analyze_pdf_and_letters(request: AnalyzeRequest):
                         )
                         
                         if success:
-                            # Read the generated file and add to dictionary
+                            # Read the generated file and encode to base64
                             with open(tmp_path, 'rb') as f:
-                                letter_files[filename] = f.read()
+                                docx_bytes = f.read()
+                            
+                            docx_base64 = base64.b64encode(docx_bytes).decode('utf-8')
+                            
+                            all_files.append({
+                                "client_name": safe_client_name,
+                                "file_type": "DOCX",
+                                "filename": filename,
+                                "file_content_base64": docx_base64,
+                                "suggested_path": f"{safe_client_name}/LOCS/",
+                                "size_bytes": len(docx_bytes)
+                            })
                             
                             logger.info(f"  ✓ Letter: {filename}")
                         else:
@@ -719,43 +769,22 @@ async def analyze_pdf_and_letters(request: AnalyzeRequest):
                     logger.error(f"  ✗ Letter failed: {filename} - {str(e)}")
         
         # ==========================================
-        # STEP 4: CREATE COMBINED ZIP FILE
-        # ==========================================
-        logger.info("Step 4: Creating combined ZIP file...")
-        memory_file = BytesIO()
-        
-        with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
-            # Add PDFs to pdfs/ folder
-            for filename, pdf_bytes in pdf_files.items():
-                zf.writestr(f"pdfs/{filename}", pdf_bytes)
-            
-            # Add claim letters to claim_letters/ folder
-            for filename, docx_bytes in letter_files.items():
-                zf.writestr(f"claim_letters/{filename}", docx_bytes)
-        
-        memory_file.seek(0)
-        
-        # ==========================================
         # SUMMARY
         # ==========================================
+        html_count = sum(1 for f in all_files if f['file_type'] == 'HTML')
+        pdf_count = sum(1 for f in all_files if f['file_type'] == 'PDF')
+        docx_count = sum(1 for f in all_files if f['file_type'] == 'DOCX')
+        
         logger.info("="*60)
         logger.info(f"✓ Successfully generated:")
-        logger.info(f"  - {len(pdf_files)} PDF report(s)")
-        logger.info(f"  - {len(letter_files)} claim letter(s)")
-        logger.info(f"  - Total: {len(pdf_files) + len(letter_files)} files")
+        logger.info(f"  - {html_count} HTML report(s)")
+        logger.info(f"  - {pdf_count} PDF report(s)")
+        logger.info(f"  - {docx_count} claim letter(s)")
+        logger.info(f"  - Total: {len(all_files)} files")
         logger.info("="*60)
         
-        # Return combined ZIP
-        from datetime import datetime
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        
-        return StreamingResponse(
-            memory_file,
-            media_type="application/zip",
-            headers={
-                "Content-Disposition": f"attachment; filename=analysis_complete_{timestamp}.zip"
-            }
-        )
+        # Return JSON array of all files
+        return all_files
         
     except Exception as e:
         logger.error(f"Unexpected error in analyze_pdf_and_letters: {str(e)}", exc_info=True)
