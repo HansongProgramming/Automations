@@ -13,9 +13,12 @@ import os
 import shutil
 
 from app import claim_letters
-# Your test URLs
+# Your test URLs - Add multiple URLs to test batch processing
 TEST_URLS = [
     "https://api.boshhhfintech.com/File/CreditReport/95d1ce7e-2c3c-49d5-a303-6a4727f91005?Auth=af26383640b084af4d2895307480ed795c334405b786d7419d78be541fcc0656",
+    # Add more URLs here to test multiple cases:
+    # "https://api.boshhhfintech.com/File/CreditReport/ANOTHER-ID?Auth=...",
+    # "https://api.boshhhfintech.com/File/CreditReport/THIRD-ID?Auth=...",
 ]
 
 BASE_URL = "http://localhost:8000"
@@ -639,6 +642,4 @@ if __name__ == "__main__":
     else:
         run_all_tests()
 
-
-    
     print("\n✨ Testing complete!")
