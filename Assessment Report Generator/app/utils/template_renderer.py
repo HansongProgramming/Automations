@@ -1,6 +1,7 @@
 from jinja2 import Template
 from datetime import datetime
 from typing import Dict, Any, List
+from app.utils.case_number_manager import CaseNumberManager
 
 
 class HTMLTemplateRenderer:
@@ -8,6 +9,7 @@ class HTMLTemplateRenderer:
     
     def __init__(self):
         self.template_str = self._get_template()
+        self.case_manager = CaseNumberManager()
     
     def _get_template(self) -> str:
         """Returns the HTML template with Jinja2 syntax"""
@@ -328,14 +330,14 @@ class HTMLTemplateRenderer:
         <div class="card">
             <div class="card-header">
                 <h2>Case Information</h2>
-                <p>RD-2026-0190 | {{ client_info.name }}</p>
+                <p>{{ case_number }} | {{ client_info.name }}</p>
             </div>
             <div class="card-body">
                 <p class="card-description">Summary of the lending transaction and key dates for reference.</p>
                 <div class="grid">
                     <div class="info-box">
                         <p class="info-label">Case ID</p>
-                        <p class="info-value">RD-2026-0190</p>
+                        <p class="info-value">{{ case_number }}</p>
                     </div>
                     <div class="info-box">
                         <p class="info-label">Applicant</p>
@@ -500,10 +502,15 @@ class HTMLTemplateRenderer:
         """
         template = Template(self.template_str)
         
-        # Prepare the context with current date
+        # Generate case number
+        client_name = credit_analysis.get('client_info', {}).get('name', 'Unknown Client')
+        case_number = self.case_manager.generate_case_number(client_name)
+        
+        # Prepare the context with current date and case number
         context = {
             **credit_analysis,
-            'current_date': datetime.now().strftime('%d %b %Y')
+            'current_date': datetime.now().strftime('%d %b %Y'),
+            'case_number': case_number
         }
         
         return template.render(**context)
