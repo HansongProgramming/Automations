@@ -6,7 +6,7 @@ Handles placeholders split across multiple Word runs
 import json
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from docx import Document
 from typing import List, Dict, Any, Optional
@@ -42,6 +42,18 @@ class ClaimLetterGenerator:
             'total_reports': 0,
             'total_letters': 0,
             'by_client': {}
+        }
+        
+        # Define conditional section markers
+        self.conditional_sections = {
+            '22.1': 'Additional Loan & Credit Agreement Commitments',
+            '22.2': 'Personal Borrowing',
+            '23.1': 'Personal Insolvency/Debt Management',
+            '23.2': 'County Court Judgments (CCJs)',
+            '23.3': 'Defaults',
+            '23.4': 'Arrears',
+            '23.5': 'Gambling',
+            '23.6': 'Overdraft Usage'
         }
     
     @staticmethod
@@ -269,6 +281,273 @@ class ClaimLetterGenerator:
         return 'Address TBC'
     
     @staticmethod
+    def extract_claim_metrics(credit_data: Dict[str, Any], target_lender_name: str = None) -> Dict[str, Any]:
+        """
+        Extract metrics needed for claim letter from credit analysis.
+        
+        DATA SOURCES:
+        - FROM CREDIT REPORT: CCJs, Defaults, Arrears, AP markers
+        - FROM BANK STATEMENTS (future): Gambling, Overdraft, P2P lending, Income/Expenditure
+        
+        Args:
+            credit_data: Full credit report data
+            target_lender_name: Name of the lender being claimed against (optional)
+            
+        Returns:
+            Dictionary with calculated metrics and flags for conditional sections.
+            Sections without data will be marked as unavailable and removed from letter.
+        """
+        credit_analysis = credit_data.get('credit_analysis', {})
+        indicators = credit_analysis.get('indicators', {})
+        claims_analysis = credit_analysis.get('claims_analysis', {})
+        
+        # Get reference date (use current date or agreement date if available)
+        reference_date = datetime.now()
+        twelve_months_ago = reference_date - timedelta(days=365)
+        
+        metrics = {
+            # CCJ data
+            'has_ccjs': False,
+            'total_ccjs': 0,
+            'ccj_details': [],
+            
+            # Defaults data
+            'has_defaults': False,
+            'totalDefaults12Months': 0,
+            'defaults_details': [],
+            
+            # Arrears data
+            'has_arrears': False,
+            'totalArrears12Months': 0,
+            'arrears_details': [],
+            
+            # AP marker (Personal Insolvency/Debt Management)
+            'has_ap_marker': False,
+            
+            # Account commitments (estimated from credit limits)
+            'has_loan_commitments': False,
+            'totalContribution': 'N/A',
+            'averageTotalContribution': 'N/A',
+            
+            # Data not available from credit report alone
+            'has_peer_to_peer': False,
+            'totalPeerToPeer': 'N/A',
+            'has_gambling': False,
+            'numberofTotalTransactions': 'N/A',
+            'averageTotalGambling': 'N/A',
+            'has_overdraft': False,
+            'averageOverdraftUsageInDays': 'N/A',
+            
+            # Hard search flag
+            'no_hard_search': False
+        }
+        
+        # Extract CCJs from timeline
+        credit_timeline = claims_analysis.get('credit_timeline', {})
+        ccjs = credit_timeline.get('ccjs', [])
+        
+        if ccjs and len(ccjs) > 0:
+            metrics['has_ccjs'] = True
+            metrics['total_ccjs'] = len(ccjs)
+            metrics['ccj_details'] = ccjs
+        
+        # Extract defaults from timeline
+        defaults = credit_timeline.get('defaults', [])
+        if defaults:
+            metrics['has_defaults'] = True
+            # Count defaults in last 12 months if date available
+            for default in defaults:
+                date_str = default.get('date', '')
+                if date_str:
+                    try:
+                        default_date = datetime.strptime(date_str, '%d/%m/%Y')
+                        if default_date >= twelve_months_ago:
+                            metrics['totalDefaults12Months'] += 1
+                    except:
+                        # If we can't parse the date, count it anyway
+                        metrics['totalDefaults12Months'] += 1
+                else:
+                    metrics['totalDefaults12Months'] += 1
+            
+            metrics['defaults_details'] = defaults
+            
+            # If no defaults in last 12 months but we have defaults, count them all
+            if metrics['totalDefaults12Months'] == 0:
+                metrics['totalDefaults12Months'] = len(defaults)
+        
+        # Check for defaults indicator
+        if indicators.get('active_default', {}).get('flagged', False):
+            metrics['has_defaults'] = True
+            if metrics['totalDefaults12Months'] == 0:
+                # Estimate at least 1 if indicator is flagged
+                metrics['totalDefaults12Months'] = 1
+        
+        # Extract arrears from timeline
+        arrears_pattern = credit_timeline.get('arrears_pattern', [])
+        if arrears_pattern:
+            metrics['has_arrears'] = True
+            # Count total arrears months
+            total_arrears_months = sum(
+                item.get('arrears_months', 0) 
+                for item in arrears_pattern
+            )
+            metrics['totalArrears12Months'] = total_arrears_months
+            metrics['arrears_details'] = arrears_pattern
+        
+        # Check arrears indicator
+        if indicators.get('arrears_last_6_months', {}).get('flagged', False):
+            metrics['has_arrears'] = True
+            if metrics['totalArrears12Months'] == 0:
+                # Estimate 3 months if flagged
+                metrics['totalArrears12Months'] = 3
+        
+        # Check for AP marker (arrangement to pay)
+        if indicators.get('ap_marker', {}).get('flagged', False):
+            metrics['has_ap_marker'] = True
+        
+        # Try to estimate loan commitments from in-scope and out-of-scope accounts
+        in_scope = claims_analysis.get('in_scope', [])
+        out_of_scope = claims_analysis.get('out_of_scope', [])
+        
+        total_credit_limit = 0
+        account_count = 0
+        
+        for account in in_scope + out_of_scope:
+            # Try to extract credit limit or loan value from account body/details
+            # This is a rough estimation - would need more detailed account data
+            account_count += 1
+            # For now, we'll skip this as we don't have detailed balance data
+        
+        # Note: For peer-to-peer, gambling, and overdraft - these require bank statement analysis
+        # which is not available from credit report data alone
+        
+        return metrics
+    
+    @staticmethod
+    def remove_conditional_sections(doc: Document, metrics: Dict[str, Any]) -> None:
+        """
+        Remove conditional sections from document based on available metrics.
+        
+        Searches for section markers like "22.1 Additional Loan" and removes
+        the entire paragraph if the required data is not available.
+        
+        Args:
+            doc: Word document object
+            metrics: Dictionary with metrics and availability flags
+        """
+        sections_to_remove = set()
+        
+        # Determine which sections to remove (just the numbers)
+        if not metrics.get('has_loan_commitments', False):
+            sections_to_remove.add('22.1')
+        
+        if not metrics.get('has_peer_to_peer', False):
+            sections_to_remove.add('22.2')
+        
+        if not metrics.get('has_ap_marker', False):
+            sections_to_remove.add('23.1')
+        
+        if not metrics.get('has_ccjs', False):
+            sections_to_remove.add('23.2')
+        
+        if not metrics.get('has_defaults', False):
+            sections_to_remove.add('23.3')
+        
+        if not metrics.get('has_arrears', False):
+            sections_to_remove.add('23.4')
+        
+        if not metrics.get('has_gambling', False):
+            sections_to_remove.add('23.5')
+        
+        if not metrics.get('has_overdraft', False):
+            sections_to_remove.add('23.6')
+        
+        # Track paragraphs to remove
+        paragraphs_to_remove = []
+        
+        # Iterate through paragraphs to find section markers
+        i = 0
+        while i < len(doc.paragraphs):
+            para = doc.paragraphs[i]
+            para_text = para.text.strip()
+            
+            # Check for delete markers - always remove these
+            if '{*Delete' in para_text and ('Not Applicable' in para_text or 'Not Appliable' in para_text):
+                # This is a conditional marker - check if we should keep the sections below
+                # For now, always remove these markers
+                paragraphs_to_remove.append(para)
+                i += 1
+                continue
+            
+            # Check if this paragraph starts with a section marker we want to remove
+            # Handle format like "22.1 " or "       22.1 " (with any leading whitespace)
+            should_remove_section = False
+            matched_section = None
+            
+            for section_num in sections_to_remove:
+                # Try to match with various patterns:
+                # "22.1 Text" or "       22.1 Text" (with leading spaces)
+                pattern = r'^\s*' + re.escape(section_num) + r'\s+'
+                if re.match(pattern, para_text):
+                    should_remove_section = True
+                    matched_section = section_num
+                    break
+            
+            if should_remove_section:
+                # Mark this paragraph for removal
+                paragraphs_to_remove.append(para)
+                i += 1
+                
+                # Continue removing paragraphs until we hit another numbered section
+                # or significant break
+                while i < len(doc.paragraphs):
+                    next_para = doc.paragraphs[i]
+                    next_text = next_para.text.strip()
+                    
+                    # Stop if we hit another section marker (XX.Y format)
+                    # Like "22.1", "22.2", "23.1", etc.
+                    if re.match(r'^\d{2}\.\d+\s', next_text):
+                        break
+                    
+                    # Stop if we hit a major section marker (XX. format)
+                    # Like "20.", "21.", "22.", "23." (but not subsections)
+                    if re.match(r'^\d{2}\.\s+[A-Z]', next_text):
+                        break
+                    
+                    # Stop at empty paragraphs that might indicate section end
+                    if not next_text:
+                        # Look ahead - if next non-empty is a section, stop here
+                        look_ahead = i + 1
+                        while look_ahead < len(doc.paragraphs):
+                            future_text = doc.paragraphs[look_ahead].text.strip()
+                            if future_text:
+                                if re.match(r'^\d{2}\.\d*\s', future_text):
+                                    # Next real para is a section - stop removal
+                                    break
+                                else:
+                                    # Next para is content, include this empty para
+                                    paragraphs_to_remove.append(next_para)
+                                    i += 1
+                                    break
+                            look_ahead += 1
+                        else:
+                            # No more content, include empty para
+                            paragraphs_to_remove.append(next_para)
+                            i += 1
+                        break
+                    
+                    # Otherwise, include this paragraph in removal
+                    paragraphs_to_remove.append(next_para)
+                    i += 1
+            else:
+                i += 1
+        
+        # Remove marked paragraphs in reverse order (to avoid index issues)
+        for para in reversed(paragraphs_to_remove):
+            p_element = para._element
+            p_element.getparent().remove(p_element)
+    
+    @staticmethod
     def replace_text_in_paragraph(paragraph, search_str: str, replace_str: str) -> bool:
         """
         Replace text in a paragraph, handling text split across multiple runs.
@@ -393,19 +672,30 @@ class ClaimLetterGenerator:
             # Extract account details from the in_scope_item
             account_details = self.extract_account_details_from_lender(in_scope_item)
             
-            # Debug: Print what we extracted
-            if debug:
-                print(f"    → Account Number: {account_details['account_number']}")
-                print(f"    → Start Date: {account_details['start_date']}")
-            
             # Get defendant information
             defendant_name = in_scope_item['name']
             defendant_address = self.get_defendant_address(defendant_name, in_scope_item)
             
+            # Extract claim metrics from credit analysis
+            metrics = self.extract_claim_metrics(credit_data, defendant_name)
+            
+            # Debug: Print what we extracted
+            if debug:
+                print(f"    → Account Number: {account_details['account_number']}")
+                print(f"    → Start Date: {account_details['start_date']}")
+                print(f"    → Metrics extracted:")
+                print(f"      - Has CCJs: {metrics['has_ccjs']} ({metrics['total_ccjs']})")
+                print(f"      - Has Defaults: {metrics['has_defaults']} ({metrics['totalDefaults12Months']})")
+                print(f"      - Has Arrears: {metrics['has_arrears']} ({metrics['totalArrears12Months']})")
+                print(f"      - Has AP Marker: {metrics['has_ap_marker']}")
+            
+            # Remove conditional sections that don't have data
+            self.remove_conditional_sections(doc, metrics)
+            
             # Get current date
             current_date = datetime.now().strftime('%d/%m/%Y')
             
-            # Prepare replacements dictionary
+            # Prepare replacements dictionary with calculated metrics
             replacements = {
                 '{Date}': current_date,
                 '{Defendant Name}': defendant_name,
@@ -424,20 +714,25 @@ class ClaimLetterGenerator:
                 '{Agreement Start Date}': account_details['start_date'],
                 '{Report Received Date}': current_date,
                 '{Report Outcome}': 'unaffordable',
-                # Optional placeholders that might not be in every template
+                # Income/Expenditure - not available from credit report
                 '{averageConsistentIncome}': 'TBC',
                 '{averageCommittedExpenditure}': 'TBC',
                 '{averageLivingExpenditure}': 'TBC',
                 '{totalAverageExpenditure}': 'TBC',
                 '{disposableincome}': 'TBC',
-                '{totalContribution}': 'TBC',
-                '{averageTotalContribution}': 'TBC',
-                '{totalPeerToPeer}': 'TBC',
-                '{totalDefaults12Months}': 'TBC',
-                '{totalArrears12Months}': 'TBC',
-                '{numberofTotalTransactions}': 'TBC',
-                '{averageTotalGambling}': 'TBC',
-                '{averageOverdraftUsageInDays}': 'TBC',
+                # Loan commitments - calculated from credit data
+                '{totalContribution}': metrics.get('totalContribution', 'N/A'),
+                '{averageTotalContribution}': metrics.get('averageTotalContribution', 'N/A'),
+                # Peer-to-peer lending - requires bank statement analysis
+                '{totalPeerToPeer}': metrics.get('totalPeerToPeer', 'N/A'),
+                # Credit report metrics - calculated from analysis
+                '{totalDefaults12Months}': str(metrics.get('totalDefaults12Months', 0)),
+                '{totalArrears12Months}': str(metrics.get('totalArrears12Months', 0)),
+                # Gambling - requires bank statement analysis
+                '{numberofTotalTransactions}': metrics.get('numberofTotalTransactions', 'N/A'),
+                '{averageTotalGambling}': metrics.get('averageTotalGambling', 'N/A'),
+                # Overdraft - requires bank statement analysis
+                '{averageOverdraftUsageInDays}': metrics.get('averageOverdraftUsageInDays', 'N/A'),
             }
             
             # Replace all placeholders
