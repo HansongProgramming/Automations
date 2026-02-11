@@ -621,6 +621,7 @@ if __name__ == "__main__":
     # Check if interactive mode
     if len(sys.argv) > 1 and sys.argv[1] == '--menu':
         interactive_menu()
+        cleanup_outputs()
     elif len(sys.argv) > 1 and sys.argv[1] == '--quick':
         test_single_quick()
     elif len(sys.argv) > 1 and sys.argv[1] == '--benchmark':
@@ -638,6 +639,6 @@ if __name__ == "__main__":
     else:
         run_all_tests()
 
-    cleanup_outputs()
+
     
     print("\n✨ Testing complete!")

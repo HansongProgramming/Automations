@@ -472,58 +472,41 @@ async def generate_claim_letters(analysis_results: List[Dict[str, Any]]):
                     try:
                         from docx import Document
                         from datetime import datetime
+                        import tempfile
+                        import os
                         
-                        # Load template
-                        doc = Document(TEMPLATE_PATH)
+                        # Use the enhanced generate_letter method that includes:
+                        # - Metric extraction from credit data
+                        # - Conditional section removal
+                        # - Placeholder replacement with calculated values
                         
-                        # Parse client information
-                        client_name_parts = claim_letter_generator.parse_client_name(client_info['name'])
-                        client_address = claim_letter_generator.parse_address(client_info['address'])
+                        # Create a temporary file for the letter
+                        with tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='.docx') as tmp_file:
+                            tmp_path = tmp_file.name
                         
-                        # DYNAMIC: Extract bank details from JSON
-                        bank_details = claim_letter_generator.extract_bank_details_from_json(report_data)
+                        try:
+                            # Generate letter using the enhanced method
+                            success = claim_letter_generator.generate_letter(
+                                tmp_path,
+                                report_data,
+                                lender,
+                                debug=False
+                            )
+                            
+                            if success:
+                                # Read the generated file and add to ZIP
+                                with open(tmp_path, 'rb') as f:
+                                    zf.writestr(filename, f.read())
+                                
+                                letter_count += 1
+                                logger.info(f"  ✓ {lender_name}")
+                            else:
+                                logger.error(f"  ✗ {lender_name} - Generation returned False")
                         
-                        # DYNAMIC: Get defendant address (checks config then JSON)
-                        defendant_address = claim_letter_generator.get_defendant_address(lender_name, lender)
-                        
-                        # Get current date
-                        current_date = datetime.now().strftime('%d/%m/%Y')
-                        account_details = claim_letter_generator.extract_account_details_from_lender(lender)
-
-                        # Prepare replacements with DYNAMIC data
-                        replacements = {
-                            '{Date}': current_date,
-                            '{Defendant Name}': lender_name,
-                            '{Defendant Address}': defendant_address,
-                            '{Client First Name}': client_name_parts['first_name'],
-                            '{Client Surname}': client_name_parts['surname'],
-                            '{Address Line 1}': client_address['line1'],
-                            '{Address Line 2}': client_address['line2'],
-                            '{Address Line 3}': client_address['line3'],
-                            '{Postcode}': client_address['postcode'],
-                            '{Bank}': lender_name,  # DEFENDANT NAME as bank
-                            '{Account Name}': client_info['name'],  # CLIENT NAME as account name
-                            '{Account Number}': account_details['account_number'],
-                            '{Sort Code}': bank_details.get('sort_code', 'TBC'),
-                            '{Agreement Number}': account_details['account_number'],
-                            '{Agreement Start Date}': account_details['start_date'],
-                            '{Report Received Date}': current_date,
-                            '{Report Outcome}': 'unaffordable',
-                        }
-                        
-                        # Replace all placeholders
-                        claim_letter_generator.replace_placeholders(doc, replacements)
-                        
-                        # Save to BytesIO
-                        doc_bytes = BytesIO()
-                        doc.save(doc_bytes)
-                        doc_bytes.seek(0)
-                        
-                        # Add to ZIP
-                        zf.writestr(filename, doc_bytes.getvalue())
-                        letter_count += 1
-                        
-                        logger.info(f"  ✓ {lender_name}")
+                        finally:
+                            # Clean up temp file
+                            if os.path.exists(tmp_path):
+                                os.unlink(tmp_path)
                         
                     except Exception as e:
                         logger.error(f"  ✗ {lender_name} - Failed: {str(e)}")
@@ -696,58 +679,41 @@ async def analyze_pdf_and_letters(request: AnalyzeRequest):
                 filename = f"{safe_client_name}_{safe_lender_name}_LOC.docx"
                 
                 try:
-                    from docx import Document
                     from datetime import datetime
+                    import tempfile
+                    import os
                     
-                    # Load template
-                    doc = Document(TEMPLATE_PATH)
+                    # Use the enhanced generate_letter method that includes:
+                    # - Metric extraction from credit data
+                    # - Conditional section removal
+                    # - Placeholder replacement with calculated values
                     
-                    # Parse client information
-                    client_name_parts = claim_letter_generator.parse_client_name(client_info['name'])
-                    client_address = claim_letter_generator.parse_address(client_info['address'])
+                    # Create a temporary file for the letter
+                    with tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='.docx') as tmp_file:
+                        tmp_path = tmp_file.name
                     
-                    # DYNAMIC: Extract bank details from JSON
-                    bank_details = claim_letter_generator.extract_bank_details_from_json(report_data)
+                    try:
+                        # Generate letter using the enhanced method
+                        success = claim_letter_generator.generate_letter(
+                            tmp_path,
+                            report_data,
+                            lender,
+                            debug=False
+                        )
+                        
+                        if success:
+                            # Read the generated file and add to dictionary
+                            with open(tmp_path, 'rb') as f:
+                                letter_files[filename] = f.read()
+                            
+                            logger.info(f"  ✓ Letter: {filename}")
+                        else:
+                            logger.error(f"  ✗ Letter failed: {filename} - Generation returned False")
                     
-                    # ✅ ADD THIS: Extract account details from lender
-                    account_details = claim_letter_generator.extract_account_details_from_lender(lender)
-                    
-                    # DYNAMIC: Get defendant address
-                    defendant_address = claim_letter_generator.get_defendant_address(lender_name, lender)
-                    
-                    current_date = datetime.now().strftime('%d/%m/%Y')
-                    
-                    # Prepare replacements with DYNAMIC data
-                    replacements = {
-                        '{Date}': current_date,
-                        '{Defendant Name}': lender_name,
-                        '{Defendant Address}': defendant_address,
-                        '{Client First Name}': client_name_parts['first_name'],
-                        '{Client Surname}': client_name_parts['surname'],
-                        '{Address Line 1}': client_address['line1'],
-                        '{Address Line 2}': client_address['line2'],
-                        '{Address Line 3}': client_address['line3'],
-                        '{Postcode}': client_address['postcode'],
-                        '{Bank}': lender_name,  # DEFENDANT NAME as bank
-                        '{Account Name}': client_info['name'],  # CLIENT NAME as account name
-                        '{Account Number}': account_details['account_number'],
-                        '{Sort Code}': bank_details.get('sort_code', 'TBC'),
-                        '{Agreement Number}': account_details['account_number'],  
-                        '{Agreement Start Date}': account_details['start_date'],  
-                        '{Report Received Date}': current_date,
-                        '{Report Outcome}': 'unaffordable',
-                    }
-                    
-                    # Replace placeholders
-                    claim_letter_generator.replace_placeholders(doc, replacements)
-                    
-                    # Save to BytesIO
-                    doc_bytes = BytesIO()
-                    doc.save(doc_bytes)
-                    doc_bytes.seek(0)
-                    
-                    letter_files[filename] = doc_bytes.getvalue()
-                    logger.info(f"  ✓ Letter: {filename}")
+                    finally:
+                        # Clean up temp file
+                        if os.path.exists(tmp_path):
+                            os.unlink(tmp_path)
                     
                 except Exception as e:
                     logger.error(f"  ✗ Letter failed: {filename} - {str(e)}")
