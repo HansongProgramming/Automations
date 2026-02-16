@@ -112,7 +112,9 @@ async def analyze_reports(request: AnalyzeRequest):
     """
     Analyze one or more credit reports from URLs.
     
-    Processes up to 10 URLs concurrently. Works with single or multiple URLs.
+    Processes URLs in batches of 10 to ensure all URLs are handled.
+    Can process any number of URLs (e.g., 30+) by queuing them in batches.
+    Each batch is processed sequentially, but URLs within a batch are fetched concurrently.
     
     Example request:
     ```json
@@ -128,6 +130,7 @@ async def analyze_reports(request: AnalyzeRequest):
     """
     urls = request.urls
     logger.info(f"Received analysis request for {len(urls)} URL(s)")
+    logger.info("=" * 60)
     
     try:
         # Step 1: Fetch all HTML content concurrently
@@ -153,13 +156,20 @@ async def analyze_reports(request: AnalyzeRequest):
                 })
         
         # Step 3: Analyze all successfully fetched reports concurrently
-        logger.info(f"Analyzing {len(analysis_tasks)} report(s)...")
-        
         if analysis_tasks:
+            logger.info(f"Analyzing {len(analysis_tasks)} successfully fetched report(s)...")
             analysis_results = await asyncio.gather(*analysis_tasks)
             results.extend(analysis_results)
         
-        logger.info(f"Analysis complete: {len(results)} total results")
+        successful_analyses = sum(1 for r in results if 'credit_analysis' in r)
+        failed_analyses = sum(1 for r in results if 'error' in r)
+        
+        logger.info("=" * 60)
+        logger.info(f"Analysis complete:")
+        logger.info(f"  ✓ {successful_analyses} successful")
+        logger.info(f"  ✗ {failed_analyses} failed")
+        logger.info(f"  Total: {len(results)} results")
+        logger.info("=" * 60)
         
         # Return as plain array matching original format
         return results
@@ -179,6 +189,9 @@ async def analyze_reports_pdf(request: AnalyzeRequest):
     
     This endpoint performs credit analysis and returns PDF reports.
     Each PDF is base64 encoded for easy transmission.
+    
+    Processes URLs in batches of 10 to ensure all URLs are handled.
+    Can process any number of URLs (e.g., 30+) by queuing them in batches.
     
     Example request:
     ```json
@@ -550,10 +563,13 @@ async def analyze_pdf_and_letters(request: AnalyzeRequest):
     COMBINED ENDPOINT: Analyze credit reports and generate both PDFs, HTML, and Claim Letters.
     
     This endpoint does everything in one call:
-    1. Analyzes credit reports from URLs
+    1. Analyzes credit reports from URLs (processed in batches of 10)
     2. Generates HTML reports
     3. Generates PDF reports
     4. Generates Letters of Claim for all in-scope lenders (with DYNAMIC bank details)
+    
+    Processes URLs in batches to ensure all URLs are handled.
+    Can process any number of URLs (e.g., 30+) by queuing them in batches.
     
     Bank details in letters are extracted from JSON:
     - Bank: Defendant/lender name
@@ -604,7 +620,9 @@ async def analyze_pdf_and_letters(request: AnalyzeRequest):
     ```
     """
     urls = request.urls
-    logger.info(f"Received combined analysis request for {len(urls)} URL(s)")
+    logger.info("=" * 60)
+    logger.info(f"COMBINED ENDPOINT: Received request for {len(urls)} URL(s)")
+    logger.info("=" * 60)
     
     try:
         # ==========================================
@@ -633,7 +651,10 @@ async def analyze_pdf_and_letters(request: AnalyzeRequest):
             results = await asyncio.gather(*analysis_tasks)
             analysis_results.extend(results)
         
-        logger.info(f"Analysis complete: {len(analysis_results)} results")
+        successful_analyses = sum(1 for r in analysis_results if 'credit_analysis' in r)
+        failed_analyses = sum(1 for r in analysis_results if 'error' in r)
+        
+        logger.info(f"Analysis phase complete: {successful_analyses} successful, {failed_analyses} failed")
         
         # ==========================================
         # STEP 2: GENERATE HTML & PDFs
@@ -774,14 +795,16 @@ async def analyze_pdf_and_letters(request: AnalyzeRequest):
         html_count = sum(1 for f in all_files if f['file_type'] == 'HTML')
         pdf_count = sum(1 for f in all_files if f['file_type'] == 'PDF')
         docx_count = sum(1 for f in all_files if f['file_type'] == 'DOCX')
+        unique_clients = len(set(f['client_name'] for f in all_files))
         
-        logger.info("="*60)
-        logger.info(f"✓ Successfully generated:")
+        logger.info("=" * 60)
+        logger.info(f"✓ GENERATION COMPLETE - {len(urls)} URLs processed")
+        logger.info(f"  - {unique_clients} unique client(s)")
         logger.info(f"  - {html_count} HTML report(s)")
         logger.info(f"  - {pdf_count} PDF report(s)")
         logger.info(f"  - {docx_count} claim letter(s)")
-        logger.info(f"  - Total: {len(all_files)} files")
-        logger.info("="*60)
+        logger.info(f"  - Total: {len(all_files)} files generated")
+        logger.info("=" * 60)
         
         # Return JSON array of all files
         return all_files
