@@ -9,7 +9,7 @@
 /misc/
 /test_output/
 /complete_package/
-/app/utils/case_numbers.json
+/app/case_numbers.json
 
 # Python cache
 __pycache__/
