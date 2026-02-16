@@ -217,7 +217,7 @@ async def analyze_reports_pdf(request: AnalyzeRequest):
             "url": "https://example.com/report1.html",
             "pdf_base64": "JVBERi0xLjQKJeLjz9...",
             "client_name": "JOHN DOE",
-            "filename": "JOHN_DOE_credit_report.pdf"
+            "filename": "JOHN_DOE_AffordabilityReport.pdf"
         }
     ]
     ```
@@ -276,7 +276,7 @@ async def analyze_reports_pdf(request: AnalyzeRequest):
                     
                     # Clean filename
                     safe_name = client_name.replace(' ', '_').replace('/', '_')
-                    filename = f"{safe_name}_credit_report.pdf"
+                    filename = f"{safe_name}_AffordabilityReport.pdf"
                     
                     pdf_results.append({
                         'url': html_result.get('url', 'unknown'),
@@ -595,7 +595,7 @@ async def analyze_pdf_and_letters(request: AnalyzeRequest):
         {
             "client_name": "JOHN_DOE",
             "file_type": "PDF",
-            "filename": "JOHN_DOE_credit_report.pdf",
+            "filename": "JOHN_DOE_AffordabilityReport.pdf",
             "file_content_base64": "JVBERi0x...",
             "suggested_path": "JOHN_DOE/PDF/",
             "size_bytes": 12345
@@ -603,7 +603,7 @@ async def analyze_pdf_and_letters(request: AnalyzeRequest):
         {
             "client_name": "JOHN_DOE",
             "file_type": "HTML",
-            "filename": "JOHN_DOE_credit_report.html",
+            "filename": "JOHN_DOE_AffordabilityReport.html",
             "file_content_base64": "PCFET0NUW...",
             "suggested_path": "JOHN_DOE/HTML/",
             "size_bytes": 98765
@@ -674,7 +674,7 @@ async def analyze_pdf_and_letters(request: AnalyzeRequest):
                     # ==========================================
                     # ADD HTML FILE
                     # ==========================================
-                    html_filename = f"{safe_name}_credit_report.html"
+                    html_filename = f"{safe_name}_AffordabilityReport.html"
                     html_bytes = html_result['html'].encode('utf-8')
                     html_base64 = base64.b64encode(html_bytes).decode('utf-8')
                     
@@ -696,7 +696,7 @@ async def analyze_pdf_and_letters(request: AnalyzeRequest):
                         client_name
                     )
                     
-                    pdf_filename = f"{safe_name}_credit_report.pdf"
+                    pdf_filename = f"{safe_name}_AffordabilityReport.pdf"
                     pdf_base64 = base64.b64encode(pdf_bytes).decode('utf-8')
                     
                     all_files.append({
