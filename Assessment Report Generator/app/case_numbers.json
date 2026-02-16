@@ -1,5 +1,5 @@
 {
-  "last_number": 10732,
+  "last_number": 10762,
   "case_registry": {
     "RD - SS - 10673": {
       "client_name": "RICHARD DAVIES",
@@ -240,6 +240,126 @@
     "CL - SS - 10732": {
       "client_name": "CAROLINE LUCAS",
       "timestamp": "2026-02-16T12:49:39.465845"
+    },
+    "RD - SS - 10733": {
+      "client_name": "RICHARD DAVIES",
+      "timestamp": "2026-02-16T13:26:31.657472"
+    },
+    "RD - SS - 10734": {
+      "client_name": "RICHARD DAVIES",
+      "timestamp": "2026-02-16T13:26:31.673481"
+    },
+    "GT - SS - 10735": {
+      "client_name": "GILLIAN THOMPSON",
+      "timestamp": "2026-02-16T13:26:31.689481"
+    },
+    "EG - SS - 10736": {
+      "client_name": "ELIZABETH GIBBONS",
+      "timestamp": "2026-02-16T13:26:31.705496"
+    },
+    "GL - SS - 10737": {
+      "client_name": "GEMMA LAWSON",
+      "timestamp": "2026-02-16T13:26:31.722555"
+    },
+    "RC - SS - 10738": {
+      "client_name": "ROSS COLQUHOUN",
+      "timestamp": "2026-02-16T13:26:31.736621"
+    },
+    "JB - SS - 10739": {
+      "client_name": "JILL BLOWERS",
+      "timestamp": "2026-02-16T13:26:31.751143"
+    },
+    "MP - SS - 10740": {
+      "client_name": "MEHRUNNISHA PATEL",
+      "timestamp": "2026-02-16T13:26:31.767682"
+    },
+    "GB - SS - 10741": {
+      "client_name": "GRANT BETT",
+      "timestamp": "2026-02-16T13:26:31.782224"
+    },
+    "CL - SS - 10742": {
+      "client_name": "CAROLINE LUCAS",
+      "timestamp": "2026-02-16T13:26:31.797118"
+    },
+    "RD - SS - 10743": {
+      "client_name": "RICHARD DAVIES",
+      "timestamp": "2026-02-16T13:27:10.514837"
+    },
+    "RD - SS - 10744": {
+      "client_name": "RICHARD DAVIES",
+      "timestamp": "2026-02-16T13:27:10.530353"
+    },
+    "GT - SS - 10745": {
+      "client_name": "GILLIAN THOMPSON",
+      "timestamp": "2026-02-16T13:27:10.548353"
+    },
+    "EG - SS - 10746": {
+      "client_name": "ELIZABETH GIBBONS",
+      "timestamp": "2026-02-16T13:27:10.564964"
+    },
+    "GL - SS - 10747": {
+      "client_name": "GEMMA LAWSON",
+      "timestamp": "2026-02-16T13:27:10.581539"
+    },
+    "RC - SS - 10748": {
+      "client_name": "ROSS COLQUHOUN",
+      "timestamp": "2026-02-16T13:27:10.598110"
+    },
+    "JB - SS - 10749": {
+      "client_name": "JILL BLOWERS",
+      "timestamp": "2026-02-16T13:27:10.612211"
+    },
+    "MP - SS - 10750": {
+      "client_name": "MEHRUNNISHA PATEL",
+      "timestamp": "2026-02-16T13:27:10.627895"
+    },
+    "GB - SS - 10751": {
+      "client_name": "GRANT BETT",
+      "timestamp": "2026-02-16T13:27:10.642456"
+    },
+    "CL - SS - 10752": {
+      "client_name": "CAROLINE LUCAS",
+      "timestamp": "2026-02-16T13:27:10.655975"
+    },
+    "RD - SS - 10753": {
+      "client_name": "RICHARD DAVIES",
+      "timestamp": "2026-02-16T13:27:39.739787"
+    },
+    "RD - SS - 10754": {
+      "client_name": "RICHARD DAVIES",
+      "timestamp": "2026-02-16T13:27:39.758306"
+    },
+    "GT - SS - 10755": {
+      "client_name": "GILLIAN THOMPSON",
+      "timestamp": "2026-02-16T13:27:39.773959"
+    },
+    "EG - SS - 10756": {
+      "client_name": "ELIZABETH GIBBONS",
+      "timestamp": "2026-02-16T13:27:39.790027"
+    },
+    "GL - SS - 10757": {
+      "client_name": "GEMMA LAWSON",
+      "timestamp": "2026-02-16T13:27:39.806487"
+    },
+    "RC - SS - 10758": {
+      "client_name": "ROSS COLQUHOUN",
+      "timestamp": "2026-02-16T13:27:39.821537"
+    },
+    "JB - SS - 10759": {
+      "client_name": "JILL BLOWERS",
+      "timestamp": "2026-02-16T13:27:39.836619"
+    },
+    "MP - SS - 10760": {
+      "client_name": "MEHRUNNISHA PATEL",
+      "timestamp": "2026-02-16T13:27:39.852179"
+    },
+    "GB - SS - 10761": {
+      "client_name": "GRANT BETT",
+      "timestamp": "2026-02-16T13:27:39.867180"
+    },
+    "CL - SS - 10762": {
+      "client_name": "CAROLINE LUCAS",
+      "timestamp": "2026-02-16T13:27:39.881179"
     }
   }
 }
