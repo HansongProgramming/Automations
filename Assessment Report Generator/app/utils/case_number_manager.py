@@ -66,13 +66,15 @@ class CaseNumberManager:
             client_name: Full name of the client
             
         Returns:
-            Initials (e.g., "John Doe" -> "JD")
+            Initials (e.g., "John Doe" -> "JD", "Mary-Jane Smith" -> "MS")
         """
         if not client_name:
             return "XX"
         
-        # Remove special characters and split by spaces
-        clean_name = re.sub(r'[^a-zA-Z\s]', '', client_name)
+        # Replace hyphens and apostrophes with spaces, then remove other special characters
+        # This preserves hyphenated names like "Mary-Jane" as "Mary Jane"
+        clean_name = client_name.replace('-', ' ').replace("'", ' ')
+        clean_name = re.sub(r'[^a-zA-Z\s]', '', clean_name)
         words = clean_name.strip().split()
         
         if not words:

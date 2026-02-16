@@ -399,7 +399,8 @@ class CreditReportAnalyzer:
             'address': None
         }
         
-        name_match = re.search(r'^([A-Z\s]+)\s+Credit File', content, re.MULTILINE)
+        # Updated regex to include hyphens, apostrophes, and other common name characters
+        name_match = re.search(r'^([A-Z\s\-\'\.\/]+?)\s+Credit File', content, re.MULTILINE)
         if name_match:
             client_info['name'] = name_match.group(1).strip()
         
