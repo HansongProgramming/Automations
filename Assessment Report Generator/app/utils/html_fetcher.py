@@ -6,7 +6,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Configuration for batch processing
-BATCH_SIZE = 10  # Process 10 URLs at a time
+BATCH_SIZE = 15  # Process 10 URLs at a time
 MAX_CONCURRENT_PER_HOST = 5  # Max concurrent connections per host
 
 
