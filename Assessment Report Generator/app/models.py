@@ -82,3 +82,15 @@ class AnalyzeResponse(BaseModel):
                 }
             ]
         }
+
+
+class CSVBatchProcessResult(BaseModel):
+    """Result for CSV batch processing"""
+    total_processed: int
+    successful: int
+    failed: int
+    drive_uploads: int
+    sheet_updates: int
+    errors: List[Dict[str, Any]]
+    message: str
+    sheets_url: Optional[str] = None

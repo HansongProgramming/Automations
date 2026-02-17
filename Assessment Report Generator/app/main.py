@@ -1,6 +1,7 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, Response, StreamingResponse
+from fastapi.responses import JSONResponse, Response, StreamingResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 import asyncio
 from typing import List, Dict, Any
 import logging
@@ -8,18 +9,27 @@ import sys
 import zipfile
 from io import BytesIO
 import base64
+import pandas as pd
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Fix for Windows asyncio + Playwright subprocess support
 if sys.platform == 'win32':
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
-from .models import AnalyzeRequest, AnalyzeResponse, SingleReportResult
+from .models import AnalyzeRequest, AnalyzeResponse, SingleReportResult, CSVBatchProcessResult
 from .utils.html_fetcher import fetch_multiple_html
 from .analyzer.credit_analyzer import CreditReportAnalyzer
 from .utils.template_renderer import HTMLTemplateRenderer
 from .utils.pdf_generator import pdf_generator
 from .claim_letters.generator import ClaimLetterGenerator
 from .claim_letters.config import TEMPLATE_PATH  # REMOVED BANK_DETAILS - now dynamic
+from .utils.google_drive_uploader import GoogleDriveUploader
+from .utils.google_sheets_tracker import GoogleSheetsTracker
 
 # Configure logging
 logging.basicConfig(
@@ -60,6 +70,55 @@ html_renderer = HTMLTemplateRenderer()
 # Initialize claim letter generator (NO BANK_DETAILS - now dynamic from JSON)
 claim_letter_generator = ClaimLetterGenerator(TEMPLATE_PATH)
 
+# Google API Configuration (set via environment variables)
+GOOGLE_CREDENTIALS_PATH = os.getenv("GOOGLE_CREDENTIALS_PATH", "credentials/google-service-account.json")
+GOOGLE_DRIVE_FOLDER_ID = os.getenv("GOOGLE_DRIVE_FOLDER_ID", None)
+GOOGLE_SHEETS_ID = os.getenv("GOOGLE_SHEETS_ID", None)
+
+# Initialize Google services (lazy initialization)
+drive_uploader = None
+sheets_tracker = None
+
+def get_drive_uploader():
+    """Get or initialize Google Drive uploader"""
+    global drive_uploader
+    if drive_uploader is None:
+        if not os.path.exists(GOOGLE_CREDENTIALS_PATH):
+            raise HTTPException(
+                status_code=500,
+                detail=f"Google credentials not found at {GOOGLE_CREDENTIALS_PATH}"
+            )
+        drive_uploader = GoogleDriveUploader(
+            credentials_path=GOOGLE_CREDENTIALS_PATH,
+            folder_id=GOOGLE_DRIVE_FOLDER_ID
+        )
+    return drive_uploader
+
+def get_sheets_tracker():
+    """Get or initialize Google Sheets tracker"""
+    global sheets_tracker
+    if sheets_tracker is None:
+        if not os.path.exists(GOOGLE_CREDENTIALS_PATH):
+            raise HTTPException(
+                status_code=500,
+                detail=f"Google credentials not found at {GOOGLE_CREDENTIALS_PATH}"
+            )
+        if not GOOGLE_SHEETS_ID:
+            raise HTTPException(
+                status_code=500,
+                detail="GOOGLE_SHEETS_ID environment variable not set"
+            )
+        sheets_tracker = GoogleSheetsTracker(
+            credentials_path=GOOGLE_CREDENTIALS_PATH,
+            spreadsheet_id=GOOGLE_SHEETS_ID
+        )
+    return sheets_tracker
+
+# Mount static files
+static_dir = Path(__file__).parent / "static"
+if static_dir.exists():
+    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
 
 async def analyze_single_report(url: str, html_content: str) -> Dict[str, Any]:
     """
@@ -90,15 +149,19 @@ async def analyze_single_report(url: str, html_content: str) -> Dict[str, Any]:
 
 @app.get("/")
 async def root():
-    """Health check endpoint"""
-    return {
-        "status": "ok",
-        "message": "Credit Report Analyzer API is running",
-        "version": "1.0.0"
-    }
+    """Serve the main batch processing webpage"""
+    index_file = Path(__file__).parent / "static" / "index.html"
+    if index_file.exists():
+        return FileResponse(index_file)
+    else:
+        return {
+            "status": "ok",
+            "message": "Credit Report Analyzer API is running",
+            "version": "1.0.0"
+        }
 
 
-@app.get("/health")
+@app.get("/api/health")
 async def health():
     """Detailed health check"""
     return {
@@ -811,6 +874,257 @@ async def analyze_pdf_and_letters(request: AnalyzeRequest):
         
     except Exception as e:
         logger.error(f"Unexpected error in analyze_pdf_and_letters: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal server error: {str(e)}"
+        )
+
+
+@app.post("/batch-process-csv", response_model=CSVBatchProcessResult)
+async def batch_process_csv(
+    file: UploadFile = File(...),
+    sheet_name: str = "Tracker"
+):
+    """
+    Process a CSV file containing credit report links.
+    Analyzes each report, generates PDFs, uploads to Google Drive, and tracks in Google Sheets.
+    
+    CSV Requirements:
+    - Must contain a column named "Credit File Link" with URLs to credit reports
+    - Can contain other columns that will be preserved in tracking
+    
+    Process:
+    1. Parse CSV and extract "Credit File Link" column
+    2. Analyze each credit report
+    3. Generate PDF for each report
+    4. Upload PDFs to Google Drive
+    5. Write tracking data to Google Sheets with download links
+    
+    Returns summary of processing results.
+    """
+    logger.info("=" * 60)
+    logger.info(f"Starting CSV batch processing: {file.filename}")
+    logger.info("=" * 60)
+    
+    try:
+        # Step 1: Read and parse CSV
+        logger.info("Reading CSV file...")
+        contents = await file.read()
+        
+        try:
+            df = pd.read_csv(BytesIO(contents))
+        except Exception as e:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Failed to parse CSV file: {str(e)}"
+            )
+        
+        # Check for required column
+        if "Credit File Link" not in df.columns:
+            raise HTTPException(
+                status_code=400,
+                detail=f"CSV must contain 'Credit File Link' column. Found columns: {', '.join(df.columns)}"
+            )
+        
+        # Extract URLs and filter out empty/null values
+        urls = df["Credit File Link"].dropna().astype(str).tolist()
+        urls = [url.strip() for url in urls if url.strip()]
+        
+        if not urls:
+            raise HTTPException(
+                status_code=400,
+                detail="No valid URLs found in 'Credit File Link' column"
+            )
+        
+        logger.info(f"Found {len(urls)} credit report URL(s) to process")
+        
+        # Step 2: Fetch HTML content
+        logger.info("Fetching HTML content...")
+        fetch_results = await fetch_multiple_html(urls)
+        
+        # Step 3: Analyze reports
+        logger.info("Analyzing credit reports...")
+        analysis_tasks = []
+        results = []
+        
+        for fetch_result in fetch_results:
+            if fetch_result['status'] == 'success':
+                task = analyze_single_report(
+                    fetch_result['url'],
+                    fetch_result['html_content']
+                )
+                analysis_tasks.append(task)
+            else:
+                results.append({
+                    "error": fetch_result.get('error', 'Unknown fetch error'),
+                    "url": fetch_result['url']
+                })
+        
+        if analysis_tasks:
+            analysis_results = await asyncio.gather(*analysis_tasks)
+            results.extend(analysis_results)
+        
+        successful_analyses = sum(1 for r in results if 'credit_analysis' in r)
+        logger.info(f"Successfully analyzed {successful_analyses}/{len(results)} reports")
+        
+        # Step 4: Render HTML and generate PDFs
+        logger.info("Generating PDF reports...")
+        html_results = html_renderer.render_multiple(results)
+        
+        pdf_data = []
+        for html_result in html_results:
+            if 'error' in html_result:
+                pdf_data.append({
+                    'url': html_result.get('url', 'unknown'),
+                    'error': html_result.get('error'),
+                    'client_name': 'Unknown'
+                })
+            elif 'html' in html_result:
+                try:
+                    client_name = html_result.get('client_name', 'Unknown')
+                    pdf_bytes = await pdf_generator.html_string_to_pdf(
+                        html_result['html'],
+                        client_name
+                    )
+                    
+                    safe_name = client_name.replace(' ', '_').replace('/', '_')
+                    filename = f"{safe_name}_AffordabilityReport.pdf"
+                    
+                    pdf_data.append({
+                        'url': html_result.get('url', 'unknown'),
+                        'pdf_bytes': pdf_bytes,
+                        'filename': filename,
+                        'client_name': client_name
+                    })
+                    
+                except Exception as e:
+                    logger.error(f"PDF generation failed for {client_name}: {str(e)}")
+                    pdf_data.append({
+                        'url': html_result.get('url', 'unknown'),
+                        'error': f'PDF generation failed: {str(e)}',
+                        'client_name': html_result.get('client_name', 'Unknown')
+                    })
+        
+        logger.info(f"Generated {sum(1 for p in pdf_data if 'pdf_bytes' in p)}/{len(pdf_data)} PDFs")
+        
+        # Step 5: Upload to Google Drive
+        logger.info("Uploading PDFs to Google Drive...")
+        uploader = get_drive_uploader()
+        
+        upload_results = []
+        for pdf_item in pdf_data:
+            if 'pdf_bytes' in pdf_item:
+                upload_result = await uploader.upload_pdf(
+                    pdf_bytes=pdf_item['pdf_bytes'],
+                    filename=pdf_item['filename']
+                )
+                upload_results.append({
+                    **upload_result,
+                    'url': pdf_item['url'],
+                    'client_name': pdf_item['client_name']
+                })
+            else:
+                upload_results.append({
+                    'success': False,
+                    'error': pdf_item.get('error', 'PDF generation failed'),
+                    'url': pdf_item['url'],
+                    'client_name': pdf_item['client_name']
+                })
+        
+        successful_uploads = sum(1 for u in upload_results if u.get('success'))
+        logger.info(f"Successfully uploaded {successful_uploads}/{len(upload_results)} files to Google Drive")
+        
+        # Step 6: Update Google Sheets
+        logger.info(f"Updating Google Sheets tracker (sheet: '{sheet_name}')...")
+        tracker = get_sheets_tracker()
+        
+        # Initialize sheet if needed
+        await tracker.initialize_sheet(sheet_name=sheet_name)
+        
+        # Prepare tracking records
+        tracking_records = []
+        errors = []
+        
+        for i, analysis_result in enumerate(results):
+            # Find corresponding upload result
+            url = analysis_result.get('url', '')
+            upload_result = next(
+                (u for u in upload_results if u.get('url') == url),
+                {'success': False, 'error': 'Upload result not found'}
+            )
+            
+            # Extract client name
+            client_name = 'Unknown'
+            if 'credit_analysis' in analysis_result:
+                client_info = analysis_result['credit_analysis'].get('client_info', {})
+                client_name = client_info.get('name', 'Unknown')
+            elif upload_result:
+                client_name = upload_result.get('client_name', 'Unknown')
+            
+            tracking_records.append({
+                'client_name': client_name,
+                'credit_url': url,
+                'analysis_result': analysis_result,
+                'drive_result': upload_result
+            })
+            
+            # Collect errors
+            if 'error' in analysis_result:
+                errors.append({
+                    'url': url,
+                    'client_name': client_name,
+                    'error': analysis_result['error']
+                })
+            elif not upload_result.get('success'):
+                errors.append({
+                    'url': url,
+                    'client_name': client_name,
+                    'error': upload_result.get('error', 'Upload failed')
+                })
+        
+        # Append all records to sheet
+        await tracker.append_multiple_records(tracking_records, sheet_name=sheet_name)
+        
+        logger.info(f"Updated {len(tracking_records)} records in Google Sheets")
+        
+        # Prepare summary
+        total_processed = len(results)
+        successful = sum(1 for r in results if 'credit_analysis' in r and 
+                        any(u.get('success') and u.get('url') == r.get('url') for u in upload_results))
+        failed = total_processed - successful
+        
+        logger.info("=" * 60)
+        logger.info("CSV BATCH PROCESSING COMPLETE")
+        logger.info(f"  Total processed: {total_processed}")
+        logger.info(f"  Successful: {successful}")
+        logger.info(f"  Failed: {failed}")
+        logger.info(f"  Drive uploads: {successful_uploads}")
+        logger.info(f"  Sheet updates: {len(tracking_records)}")
+        logger.info("=" * 60)
+        
+        # Generate Google Sheets URL
+        sheets_url = None
+        if GOOGLE_SHEETS_ID:
+            sheets_url = f"https://docs.google.com/spreadsheets/d/{GOOGLE_SHEETS_ID}/edit"
+            logger.info(f"Google Sheets URL: {sheets_url}")
+        
+        return CSVBatchProcessResult(
+            total_processed=total_processed,
+            successful=successful,
+            failed=failed,
+            drive_uploads=successful_uploads,
+            sheet_updates=len(tracking_records),
+            errors=errors,
+            message=f"Successfully processed {successful}/{total_processed} reports. "
+                   f"{successful_uploads} files uploaded to Google Drive. "
+                   f"{len(tracking_records)} records added to Google Sheets.",
+            sheets_url=sheets_url
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error in batch_process_csv: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail=f"Internal server error: {str(e)}"

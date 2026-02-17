@@ -11,6 +11,10 @@
 /complete_package/
 /app/case_numbers.json
 
+# Google credentials
+/credentials/
+*.json
+
 # Python cache
 __pycache__/
 /app/__pycache__/

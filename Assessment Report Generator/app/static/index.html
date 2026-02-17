@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Affordability Assessment Report Generator - CSV Batch Processing</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --navy-dark: #0f172a;
+            --navy-medium: #1e293b;
+            --navy-light: #334155;
+            --cyan: #06b6d4;
+            --cyan-light: #22d3ee;
+            --text-gray: #94a3b8;
+            --border-color: #475569;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, var(--navy-dark) 0%, var(--navy-medium) 100%);
+            color: white;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* Header */
+        .header {
+            background-color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--navy-dark);
+            background: var(--navy-dark);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+        }
+
+        .header-title {
+            color: var(--navy-dark);
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 4rem 2rem;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, var(--cyan-light), var(--cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.15rem;
+            color: var(--text-gray);
+            max-width: 800px;
+            margin: 0 auto 1rem;
+        }
+
+        /* Features */
+        .features {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature-card {
+            background: var(--navy-medium);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(6, 182, 212, 0.2);
+        }
+
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--cyan);
+        }
+
+        .feature-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: white;
+        }
+
+        .feature-card p {
+            color: var(--text-gray);
+            font-size: 1rem;
+        }
+
+        /* How It Works */
+        .how-it-works {
+            max-width: 1000px;
+            margin: 3rem auto;
+            padding: 3rem 2rem;
+        }
+
+        .how-it-works h2 {
+            font-size: 2.5rem;
+            text-align: center;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--cyan-light), var(--cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .how-it-works > p {
+            text-align: center;
+            color: var(--text-gray);
+            margin-bottom: 3rem;
+        }
+
+        .steps {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .step {
+            display: flex;
+            gap: 2rem;
+            align-items: flex-start;
+        }
+
+        .step-number {
+            background: var(--cyan);
+            color: var(--navy-dark);
+            font-weight: 700;
+            font-size: 1.5rem;
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .step-content h3 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: white;
+        }
+
+        .step-content p {
+            color: var(--text-gray);
+            font-size: 1.05rem;
+        }
+
+        /* Upload Section */
+        .upload-section {
+            max-width: 800px;
+            margin: 3rem auto;
+            padding: 0 2rem;
+        }
+
+        .upload-section h2 {
+            font-size: 2rem;
+            text-align: center;
+            margin-bottom: 2rem;
+            background: linear-gradient(135deg, var(--cyan-light), var(--cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .upload-card {
+            background: var(--navy-medium);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 3rem;
+        }
+
+        .info-box {
+            background: rgba(6, 182, 212, 0.1);
+            border: 1px solid var(--cyan);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .info-box h4 {
+            color: var(--cyan);
+            margin-bottom: 0.75rem;
+            font-size: 1.1rem;
+        }
+
+        .info-box p {
+            color: var(--text-gray);
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .info-box ul {
+            margin-left: 1.5rem;
+            color: var(--text-gray);
+        }
+
+        .info-box code {
+            background: var(--navy-dark);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: var(--cyan-light);
+        }
+
+        .upload-area {
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            padding: 3rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            margin-bottom: 1.5rem;
+        }
+
+        .upload-area:hover,
+        .upload-area.dragover {
+            border-color: var(--cyan);
+            background: rgba(6, 182, 212, 0.05);
+        }
+
+        .upload-area.has-file {
+            border-color: var(--cyan);
+            background: rgba(6, 182, 212, 0.1);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: var(--cyan);
+        }
+
+        .upload-area h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+            color: white;
+        }
+
+        .upload-area p {
+            color: var(--text-gray);
+            font-size: 0.95rem;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .file-info {
+            display: none;
+            background: var(--navy-dark);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        .file-info.show {
+            display: block;
+        }
+
+        .file-name {
+            color: var(--cyan);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .file-details {
+            color: var(--text-gray);
+            font-size: 0.9rem;
+        }
+
+        .sheet-name-input {
+            margin-bottom: 1.5rem;
+        }
+
+        .sheet-name-input label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: white;
+            font-weight: 500;
+        }
+
+        .sheet-name-input input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--navy-dark);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: white;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .sheet-name-input input:focus {
+            outline: none;
+            border-color: var(--cyan);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, var(--cyan), var(--cyan-light));
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(6, 182, 212, 0.4);
+        }
+
+        .btn:disabled {
+            background: var(--navy-light);
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        /* Progress */
+        .progress-section {
+            display: none;
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: var(--navy-dark);
+            border-radius: 8px;
+        }
+
+        .progress-section.show {
+            display: block;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--navy-light);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--cyan), var(--cyan-light));
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .progress-text {
+            color: var(--text-gray);
+            text-align: center;
+            font-size: 0.95rem;
+        }
+
+        /* Results */
+        .results-section {
+            display: none;
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+
+        .results-section.show {
+            display: block;
+        }
+
+        .results-card {
+            background: var(--navy-medium);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .results-header h3 {
+            font-size: 1.75rem;
+            color: white;
+        }
+
+        .status-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .status-badge.success {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        .status-badge.error {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-box {
+            background: var(--navy-dark);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid var(--cyan);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--cyan);
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            color: var(--text-gray);
+            font-size: 0.9rem;
+        }
+
+        .message-box {
+            background: rgba(6, 182, 212, 0.1);
+            border: 1px solid var(--cyan);
+            border-radius: 8px;
+            padding: 1.5rem;
+            color: var(--text-gray);
+        }
+
+        .error-list {
+            margin-top: 1.5rem;
+        }
+
+        .error-item {
+            background: var(--navy-dark);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 0.75rem;
+            border-left: 4px solid #ef4444;
+        }
+
+        .error-client {
+            color: white;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .error-message {
+            color: #ef4444;
+            font-size: 0.9rem;
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--navy-dark);
+            border-top: 1px solid var(--border-color);
+            padding: 3rem 2rem;
+            margin-top: 5rem;
+        }
+
+        .footer-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 3rem;
+        }
+
+        .footer-section h4 {
+            color: white;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .footer-section p,
+        .footer-section a {
+            color: var(--text-gray);
+            font-size: 0.95rem;
+            text-decoration: none;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        .footer-section a:hover {
+            color: var(--cyan);
+        }
+
+        .footer-bottom {
+            max-width: 1400px;
+            margin: 2rem auto 0;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+            color: var(--text-gray);
+            font-size: 0.9rem;
+        }
+
+        .loader {
+            border: 3px solid var(--navy-light);
+            border-top: 3px solid var(--cyan);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .features {
+                grid-template-columns: 1fr;
+            }
+
+            .step {
+                flex-direction: column;
+            }
+
+            .upload-card {
+                padding: 2rem 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">SYSTEMIZE</div>
+            <div class="header-title">Affordability Assessment Report Generator</div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <h1>CSV Batch Processing</h1>
+        <p>Upload a CSV file with credit report links to generate comprehensive affordability assessment reports.</p>
+        <p>Automated analysis, PDF generation, Google Drive upload, and tracking—all in one workflow.</p>
+    </section>
+
+    <!-- Features -->
+    <section class="features">
+        <div class="feature-card">
+            <div class="feature-icon">⚡</div>
+            <h3>Batch Processing</h3>
+            <p>Process multiple credit reports simultaneously from a single CSV upload.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">🔒</div>
+            <h3>Automated Upload</h3>
+            <p>PDFs automatically uploaded to Google Drive with shareable links.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">📊</div>
+            <h3>Live Tracking</h3>
+            <p>All reports tracked in Google Sheets with download links for easy access.</p>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="how-it-works">
+        <h2>How It Works</h2>
+        <p>Simple, transparent, and efficient</p>
+        
+        <div class="steps">
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h3>Upload CSV</h3>
+                    <p>Upload your CSV file containing a "Credit File Link" column with credit report URLs.</p>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h3>Automated Analysis</h3>
+                    <p>Our system analyzes lending practices, generates PDFs, and uploads them to Google Drive.</p>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h3>Track & Download</h3>
+                    <p>View comprehensive tracking in Google Sheets with clickable download links for all reports.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Upload Section -->
+    <section class="upload-section">
+        <h2>Upload Your CSV</h2>
+        
+        <div class="upload-card">
+            <div class="info-box">
+                <h4>CSV Requirements</h4>
+                <p>Your CSV file must contain:</p>
+                <ul>
+                    <li>A column named <code>Credit File Link</code> with credit report URLs</li>
+                    <li>One URL per row</li>
+                    <li>Other columns are optional and will be preserved</li>
+                </ul>
+            </div>
+
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📄</div>
+                <h3>Click to upload or drag and drop</h3>
+                <p>CSV files only • Maximum 100 reports per batch</p>
+                <input type="file" id="fileInput" accept=".csv">
+                
+                <div class="file-info" id="fileInfo">
+                    <div class="file-name" id="fileName"></div>
+                    <div class="file-details" id="fileDetails"></div>
+                </div>
+            </div>
+
+            <div class="sheet-name-input">
+                <label for="sheetName">Google Sheets Tab Name (optional)</label>
+                <input 
+                    type="text" 
+                    id="sheetName" 
+                    placeholder="Tracker" 
+                    value="Tracker"
+                >
+            </div>
+
+            <button class="btn" id="submitBtn" disabled>
+                Process CSV File
+            </button>
+
+            <div class="progress-section" id="progressSection">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">Processing...</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Results Section -->
+    <section class="results-section" id="resultsSection">
+        <div class="results-card">
+            <div class="results-header">
+                <h3>Processing Results</h3>
+                <span class="status-badge" id="statusBadge"></span>
+            </div>
+
+            <div class="stats-grid" id="statsGrid"></div>
+
+            <div class="message-box" id="messageBox"></div>
+
+            <div class="error-list" id="errorList"></div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>SYSTEMIZE</h4>
+                <p>Empowering businesses through innovative automation solutions, cutting-edge web and app development, and strategic digital marketing services.</p>
+            </div>
+            
+            <div class="footer-section">
+                <h4>Company</h4>
+                <a href="#">About Us</a>
+                <a href="#">Contact</a>
+            </div>
+            
+            <div class="footer-section">
+                <h4>Contact</h4>
+                <p>E: info@systemizesolutions.co.uk</p>
+                <p>P: +44 7597 195 645</p>
+            </div>
+            
+            <div class="footer-section">
+                <h4>Legal</h4>
+                <a href="#">Privacy Policy</a>
+                <a href="#">Terms of Service</a>
+            </div>
+        </div>
+        
+        <div class="footer-bottom">
+            © 2026 Systemize Solutions Ltd. All rights reserved. Registered in England and Wales. Company No. 15608791
+        </div>
+    </footer>
+
+    <script>
+        // Elements
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileDetails = document.getElementById('fileDetails');
+        const submitBtn = document.getElementById('submitBtn');
+        const sheetNameInput = document.getElementById('sheetName');
+        const progressSection = document.getElementById('progressSection');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const resultsSection = document.getElementById('resultsSection');
+        const statusBadge = document.getElementById('statusBadge');
+        const statsGrid = document.getElementById('statsGrid');
+        const messageBox = document.getElementById('messageBox');
+        const errorList = document.getElementById('errorList');
+
+        let selectedFile = null;
+
+        // Upload area click
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileSelect(files[0]);
+            }
+        });
+
+        // File input change
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+
+        // Handle file selection
+        function handleFileSelect(file) {
+            if (!file.name.endsWith('.csv')) {
+                alert('Please select a CSV file.');
+                return;
+            }
+
+            selectedFile = file;
+            fileName.textContent = file.name;
+            fileDetails.textContent = `Size: ${(file.size / 1024).toFixed(2)} KB`;
+            fileInfo.classList.add('show');
+            uploadArea.classList.add('has-file');
+            submitBtn.disabled = false;
+        }
+
+        // Submit button
+        submitBtn.addEventListener('click', async () => {
+            if (!selectedFile) {
+                alert('Please select a CSV file first.');
+                return;
+            }
+
+            // Hide previous results
+            resultsSection.classList.remove('show');
+
+            // Show progress
+            progressSection.classList.add('show');
+            progressFill.style.width = '30%';
+            progressText.textContent = 'Uploading and processing CSV...';
+            submitBtn.disabled = true;
+
+            try {
+                // Prepare form data
+                const formData = new FormData();
+                formData.append('file', selectedFile);
+
+                // Get sheet name
+                const sheetName = sheetNameInput.value.trim() || 'Tracker';
+
+                // Make API request
+                const response = await fetch(`/batch-process-csv?sheet_name=${encodeURIComponent(sheetName)}`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                progressFill.style.width = '70%';
+                progressText.textContent = 'Processing results...';
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Processing failed');
+                }
+
+                const result = await response.json();
+
+                progressFill.style.width = '100%';
+                progressText.textContent = 'Complete!';
+
+                // Display results
+                displayResults(result);
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert(`Error: ${error.message}`);
+                progressSection.classList.remove('show');
+            } finally {
+                submitBtn.disabled = false;
+            }
+        });
+
+        // Display results
+        function displayResults(result) {
+            // Hide progress
+            setTimeout(() => {
+                progressSection.classList.remove('show');
+                progressFill.style.width = '0%';
+            }, 1000);
+
+            // Show results section
+            resultsSection.classList.add('show');
+
+            // Status badge
+            const hasErrors = result.failed > 0;
+            statusBadge.textContent = hasErrors ? 'Completed with Errors' : 'Success';
+            statusBadge.className = 'status-badge ' + (hasErrors ? 'error' : 'success');
+
+            // Stats
+            statsGrid.innerHTML = `
+                <div class="stat-box">
+                    <div class="stat-value">${result.total_processed}</div>
+                    <div class="stat-label">Total Processed</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">${result.successful}</div>
+                    <div class="stat-label">Successful</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">${result.failed}</div>
+                    <div class="stat-label">Failed</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">${result.drive_uploads}</div>
+                    <div class="stat-label">Drive Uploads</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">${result.sheet_updates}</div>
+                    <div class="stat-label">Sheet Updates</div>
+                </div>
+            `;
+
+            // Message with Google Sheets link
+            if (result.sheets_url) {
+                messageBox.innerHTML = `
+                    ${result.message}<br><br>
+                    <a href="${result.sheets_url}" target="_blank" style="color: #10b981; text-decoration: underline; font-weight: 600;">
+                        📊 View Tracking Sheet
+                    </a>
+                `;
+            } else {
+                messageBox.textContent = result.message;
+            }
+
+            // Errors
+            if (result.errors && result.errors.length > 0) {
+                errorList.innerHTML = '<h4 style="color: #ef4444; margin-bottom: 1rem;">Errors:</h4>';
+                result.errors.forEach(error => {
+                    const errorItem = document.createElement('div');
+                    errorItem.className = 'error-item';
+                    errorItem.innerHTML = `
+                        <div class="error-client">${error.client_name}</div>
+                        <div class="error-message">${error.error}</div>
+                    `;
+                    errorList.appendChild(errorItem);
+                });
+            } else {
+                errorList.innerHTML = '';
+            }
+
+            // Scroll to results
+            resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    </script>
+</body>
+</html>
