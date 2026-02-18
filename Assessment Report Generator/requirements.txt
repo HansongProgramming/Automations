@@ -24,14 +24,12 @@ Pillow==10.1.0
 # Configuration
 python-dotenv==1.0.0
 
-#Document handling
+# Document handling
 python-docx
 
-# Google APIs
+# Google APIs (OAuth-based, works with personal Gmail)
 google-auth==2.25.2
 google-auth-oauthlib==1.2.0
-google-auth-httplib2==0.2.0
-google-api-python-client==2.111.0
 
 # CSV handling
 pandas==2.1.4

@@ -12,5 +12,5 @@ COPY app ./app
 # Expose port
 EXPOSE 8001
 
-# Run the application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
+# Run the application with root-path for subpath hosting
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001", "--root-path", "/affordabilityassessment"]
