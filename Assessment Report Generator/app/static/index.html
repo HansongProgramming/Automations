@@ -10,15 +10,15 @@
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
-            --bg:        #0a0f0d;
-            --surface:   #111812;
-            --surface2:  #182019;
-            --border:    #253028;
-            --green:     #2dff6e;
-            --green-dim: #1a9940;
-            --green-glow:rgba(45,255,110,0.12);
-            --text:      #d4e8d8;
-            --muted:     #567860;
+            --bg:        #080c14;
+            --surface:   #0a1628;
+            --surface2:  #0d1a2d;
+            --border:    #1a3050;
+            --accent:    #00d4ff;
+            --accent-dim:#0088aa;
+            --accent-glow:rgba(0,212,255,0.12);
+            --text:      #c8dce8;
+            --muted:     #5a7199;
             --danger:    #ff4d6d;
             --warn:      #ffb347;
             --mono:      'DM Mono', monospace;
@@ -39,8 +39,8 @@
             position: fixed;
             inset: 0;
             background-image:
-                linear-gradient(rgba(45,255,110,0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(45,255,110,0.03) 1px, transparent 1px);
+                linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
             background-size: 40px 40px;
             pointer-events: none;
             z-index: 0;
@@ -55,7 +55,7 @@
             align-items: center;
             padding: 1.25rem 2.5rem;
             border-bottom: 1px solid var(--border);
-            background: rgba(10,15,13,0.9);
+            background: rgba(8,12,20,0.9);
             backdrop-filter: blur(12px);
         }
 
@@ -64,7 +64,7 @@
             font-weight: 800;
             font-size: 1.1rem;
             letter-spacing: 0.15em;
-            color: var(--green);
+            color: var(--accent);
             text-transform: uppercase;
         }
 
@@ -89,7 +89,7 @@
             font-family: var(--mono);
             font-size: 0.75rem;
             letter-spacing: 0.2em;
-            color: var(--green-dim);
+            color: var(--accent-dim);
             text-transform: uppercase;
             margin-bottom: 1.5rem;
             display: flex;
@@ -104,7 +104,7 @@
             display: block;
             width: 40px;
             height: 1px;
-            background: var(--green-dim);
+            background: var(--accent-dim);
         }
 
         h1 {
@@ -116,7 +116,7 @@
             margin-bottom: 1.25rem;
         }
 
-        h1 span { color: var(--green); }
+        h1 span { color: var(--accent); }
 
         .hero p {
             font-size: 1.05rem;
@@ -152,7 +152,7 @@
             font-family: var(--mono);
             font-size: 1.6rem;
             font-weight: 500;
-            color: var(--green);
+            color: var(--accent);
         }
 
         .stat-lbl {
@@ -179,7 +179,7 @@
             font-size: 0.72rem;
             letter-spacing: 0.2em;
             text-transform: uppercase;
-            color: var(--green-dim);
+            color: var(--accent-dim);
             margin-bottom: 1.25rem;
             display: flex;
             align-items: center;
@@ -204,8 +204,8 @@
 
         /* ── Info box ── */
         .info-box {
-            background: var(--green-glow);
-            border: 1px solid rgba(45,255,110,0.2);
+            background: var(--accent-glow);
+            border: 1px solid rgba(0,212,255,0.2);
             border-radius: 8px;
             padding: 1.25rem 1.5rem;
             margin-bottom: 1.75rem;
@@ -216,7 +216,7 @@
             font-size: 0.75rem;
             letter-spacing: 0.12em;
             text-transform: uppercase;
-            color: var(--green);
+            color: var(--accent);
             margin-bottom: 0.75rem;
         }
 
@@ -231,8 +231,8 @@
         code {
             font-family: var(--mono);
             font-size: 0.82rem;
-            background: rgba(45,255,110,0.08);
-            color: var(--green);
+            background: rgba(0,212,255,0.08);
+            color: var(--accent);
             padding: 0.15rem 0.45rem;
             border-radius: 4px;
         }
@@ -251,13 +251,13 @@
 
         .drop-zone:hover,
         .drop-zone.drag-over {
-            border-color: var(--green-dim);
-            background: var(--green-glow);
+            border-color: var(--accent-dim);
+            background: var(--accent-glow);
         }
 
         .drop-zone.has-file {
-            border-color: var(--green);
-            background: var(--green-glow);
+            border-color: var(--accent);
+            background: var(--accent-glow);
         }
 
         .drop-icon {
@@ -284,13 +284,13 @@
         .file-pill {
             display: none;
             margin-top: 1rem;
-            background: rgba(45,255,110,0.06);
-            border: 1px solid rgba(45,255,110,0.2);
+            background: rgba(0,212,255,0.06);
+            border: 1px solid rgba(0,212,255,0.2);
             border-radius: 6px;
             padding: 0.6rem 1rem;
             font-family: var(--mono);
             font-size: 0.8rem;
-            color: var(--green);
+            color: var(--accent);
         }
 
         .file-pill.show { display: block; }
@@ -324,14 +324,14 @@
 
         .field input:focus {
             outline: none;
-            border-color: var(--green-dim);
+            border-color: var(--accent-dim);
         }
 
         /* ── Button ── */
         .btn {
             width: 100%;
             padding: 1rem;
-            background: var(--green);
+            background: var(--accent);
             color: var(--bg);
             border: none;
             border-radius: 8px;
@@ -345,8 +345,8 @@
         }
 
         .btn:hover:not(:disabled) {
-            background: #4fff87;
-            box-shadow: 0 0 24px rgba(45,255,110,0.35);
+            background: #33e0ff;
+            box-shadow: 0 0 24px rgba(0,212,255,0.35);
             transform: translateY(-1px);
         }
 
@@ -376,11 +376,11 @@
 
         .progress-bar {
             height: 100%;
-            background: var(--green);
+            background: var(--accent);
             border-radius: 2px;
             width: 0%;
             transition: width 0.4s ease;
-            box-shadow: 0 0 10px var(--green);
+            box-shadow: 0 0 10px var(--accent);
         }
 
         .progress-label {
@@ -414,7 +414,7 @@
             font-family: var(--mono);
             font-size: 1.8rem;
             font-weight: 500;
-            color: var(--green);
+            color: var(--accent);
         }
 
         .summary-box .val.danger { color: var(--danger); }
@@ -434,8 +434,8 @@
             display: flex;
             align-items: center;
             gap: 1rem;
-            background: var(--green-glow);
-            border: 1px solid rgba(45,255,110,0.25);
+            background: var(--accent-glow);
+            border: 1px solid rgba(0,212,255,0.25);
             border-radius: 8px;
             padding: 1rem 1.25rem;
             margin-bottom: 2rem;
@@ -444,7 +444,7 @@
         .sheets-link-bar .icon { font-size: 1.4rem; }
 
         .sheets-link-bar a {
-            color: var(--green);
+            color: var(--accent);
             font-weight: 600;
             font-size: 0.95rem;
             text-decoration: none;
@@ -478,7 +478,7 @@
             transition: border-color 0.2s;
         }
 
-        .client-card:hover { border-color: var(--green-dim); }
+        .client-card:hover { border-color: var(--accent-dim); }
 
         .client-card-header {
             display: flex;
@@ -503,9 +503,9 @@
         }
 
         .client-badge.ok {
-            background: rgba(45,255,110,0.1);
-            color: var(--green);
-            border: 1px solid rgba(45,255,110,0.25);
+            background: rgba(0,212,255,0.1);
+            color: var(--accent);
+            border: 1px solid rgba(0,212,255,0.25);
         }
 
         .client-badge.err {
@@ -559,13 +559,13 @@
         }
 
         .copy-btn:hover {
-            border-color: var(--green-dim);
-            color: var(--green);
+            border-color: var(--accent-dim);
+            color: var(--accent);
         }
 
         .copy-btn.copied {
-            border-color: var(--green);
-            color: var(--green);
+            border-color: var(--accent);
+            color: var(--accent);
         }
 
         .open-btn {
@@ -584,8 +584,8 @@
         }
 
         .open-btn:hover {
-            border-color: var(--green-dim);
-            color: var(--green);
+            border-color: var(--accent-dim);
+            color: var(--accent);
         }
 
         /* ── Error card ── */
@@ -632,7 +632,7 @@
             font-size: 0.7rem;
             letter-spacing: 0.15em;
             text-transform: uppercase;
-            color: var(--green-dim);
+            color: var(--accent-dim);
             margin-bottom: 1rem;
         }
 
@@ -998,5 +998,175 @@
         return str.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 </script>
+
+<style>
+    /* ── Footer Blue Theme ── */
+    .footer {
+        position: relative;
+        z-index: 1;
+        background: linear-gradient(180deg, #0a1628 0%, #081220 100%);
+        border-top: 1px solid rgba(0, 180, 216, 0.15);
+        padding: 4rem 2.5rem 2rem;
+        margin-top: 4rem;
+    }
+
+    .footer::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(0, 180, 216, 0.5), transparent);
+    }
+
+    .footer-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr 1.5fr;
+        gap: 3rem;
+    }
+
+    .footer-brand h3 {
+        font-family: var(--display);
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #00d4ff;
+        margin-bottom: 1rem;
+        letter-spacing: 0.02em;
+    }
+
+    .footer-brand p {
+        font-size: 0.9rem;
+        color: #8b9dc3;
+        line-height: 1.7;
+        max-width: 320px;
+    }
+
+    .footer-section h4 {
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: #00d4ff;
+        margin-bottom: 1.25rem;
+    }
+
+    .footer-section ul {
+        list-style: none;
+    }
+
+    .footer-section li {
+        margin-bottom: 0.75rem;
+    }
+
+    .footer-section a {
+        font-size: 0.9rem;
+        color: #8b9dc3;
+        text-decoration: none;
+        transition: color 0.2s ease;
+    }
+
+    .footer-section a:hover {
+        color: #00d4ff;
+    }
+
+    .footer-contact p {
+        font-size: 0.85rem;
+        color: #8b9dc3;
+        margin-bottom: 0.6rem;
+        line-height: 1.6;
+    }
+
+    .footer-contact a {
+        color: #8b9dc3;
+        text-decoration: none;
+        transition: color 0.2s ease;
+    }
+
+    .footer-contact a:hover {
+        color: #00d4ff;
+    }
+
+    .footer-contact span {
+        color: #5a7199;
+        font-family: var(--mono);
+        font-size: 0.8rem;
+    }
+
+    .footer-bottom {
+        max-width: 1200px;
+        margin: 3rem auto 0;
+        padding-top: 1.5rem;
+        border-top: 1px solid rgba(0, 180, 216, 0.1);
+        text-align: center;
+    }
+
+    .footer-bottom p {
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        color: #5a7199;
+        line-height: 1.8;
+    }
+
+    /* Responsive footer */
+    @media (max-width: 900px) {
+        .footer-container {
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+        .footer-brand {
+            grid-column: 1 / -1;
+        }
+    }
+
+    @media (max-width: 600px) {
+        .footer-container {
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            text-align: center;
+        }
+        .footer-brand p {
+            max-width: none;
+        }
+    }
+</style>
+
+<footer class="footer">
+    <div class="footer-container">
+        <div class="footer-brand">
+            <h3>Systemize Solutions</h3>
+            <p>Empowering businesses through innovative automation solutions, cutting-edge web and app development, and strategic digital marketing services.</p>
+        </div>
+        
+        <div class="footer-section">
+            <h4>Company</h4>
+            <ul>
+                <li><a href="#">About Us</a></li>
+                <li><a href="#">Contact</a></li>
+            </ul>
+        </div>
+        
+        <div class="footer-section">
+            <h4>Legal</h4>
+            <ul>
+                <li><a href="#">Privacy Policy</a></li>
+                <li><a href="#">Terms of Service</a></li>
+            </ul>
+        </div>
+        
+        <div class="footer-section footer-contact">
+            <h4>Contact</h4>
+            <p><span>E:</span> <a href="mailto:info@systemizesolutions.co.uk">info@systemizesolutions.co.uk</a></p>
+            <p><span>P:</span> <a href="tel:+447597195645">+44 7597 195 645</a></p>
+        </div>
+    </div>
+    
+    <div class="footer-bottom">
+        <p>© 2026 Systemize Solutions Ltd. All rights reserved.<br>Registered in England and Wales. Company No. 15608791</p>
+    </div>
+</footer>
+
 </body>
 </html>
