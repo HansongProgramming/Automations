@@ -13,7 +13,10 @@ import requests as req_lib
 
 logger = logging.getLogger(__name__)
 
-SCOPES = ['https://www.googleapis.com/auth/drive']
+SCOPES = [
+    'https://www.googleapis.com/auth/drive',
+    'https://www.googleapis.com/auth/drive.file',
+]
 DRIVE_API = 'https://www.googleapis.com/drive/v3'
 DRIVE_UPLOAD_API = 'https://www.googleapis.com/upload/drive/v3'
 
@@ -196,7 +199,7 @@ class GoogleDriveUploader:
         )
 
         if not upload_resp.ok:
-            logger.error(f"Upload API error {upload_resp.status_code}: {upload_resp.text}")
+            logger.error(f"Upload API error {upload_resp.status_code}: {upload_resp.text[:500]}")
         upload_resp.raise_for_status()
         return upload_resp.json()
 
