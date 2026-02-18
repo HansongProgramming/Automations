@@ -1058,7 +1058,8 @@ async def batch_process_csv(
                     file_type='PDF',
                     mime_type='application/pdf'
                 )
-                pdf_link = pdf_result.get('web_view_link', pdf_folder_link)
+                pdf_view_link = pdf_result.get('web_view_link', pdf_folder_link)
+                pdf_download_link = pdf_result.get('web_content_link', '')
                 upload_count += 1
 
                 # ── 3d: Upload HTML ────────────────────────────────
@@ -1070,7 +1071,8 @@ async def batch_process_csv(
                     file_type='HTML',
                     mime_type='text/html'
                 )
-                html_link = html_up.get('web_view_link', html_folder_link)
+                html_view_link = html_up.get('web_view_link', html_folder_link)
+                html_download_link = html_up.get('web_content_link', '')
                 upload_count += 1
 
                 # ── 3e: Upload DOCX claim letters ──────────────────
@@ -1110,7 +1112,8 @@ async def batch_process_csv(
                                 # Store each LOC upload with defendant info
                                 loc_uploads.append({
                                     'defendant': lender_name,
-                                    'loc_link': loc_up.get('web_view_link', loc_folder_link),
+                                    'loc_view_link': loc_up.get('web_view_link', loc_folder_link),
+                                    'loc_download_link': loc_up.get('web_content_link', ''),
                                     'filename': docx_filename,
                                 })
                                 upload_count += 1
@@ -1122,8 +1125,8 @@ async def batch_process_csv(
                 client_summary[client_name] = {
                     'client_name':         client_name,
                     'client_folder_link':  client_folder_link,
-                    'pdf_link':            pdf_link,
-                    'html_link':           html_link,
+                    'pdf_link':            pdf_view_link,
+                    'html_link':           html_view_link,
                     'loc_link':            loc_folder_link,   # always the LOC subfolder
                     'error':               None,
                 }
@@ -1145,9 +1148,12 @@ async def batch_process_csv(
                             'drive_result': {
                                 'success':             True,
                                 'client_folder_link':  client_folder_link,
-                                'pdf_link':            pdf_link,
-                                'html_link':           html_link,
-                                'loc_link':            loc_info['loc_link'],  # specific LOC file link
+                                'pdf_view_link':       pdf_view_link,
+                                'pdf_download_link':   pdf_download_link,
+                                'html_view_link':      html_view_link,
+                                'html_download_link':  html_download_link,
+                                'loc_view_link':       loc_info['loc_view_link'],
+                                'loc_download_link':   loc_info['loc_download_link'],
                             },
                             'csv_row_data': row_csv_data,
                         })
@@ -1160,9 +1166,12 @@ async def batch_process_csv(
                         'drive_result': {
                             'success':             True,
                             'client_folder_link':  client_folder_link,
-                            'pdf_link':            pdf_link,
-                            'html_link':           html_link,
-                            'loc_link':            loc_folder_link,
+                            'pdf_view_link':       pdf_view_link,
+                            'pdf_download_link':   pdf_download_link,
+                            'html_view_link':      html_view_link,
+                            'html_download_link':  html_download_link,
+                            'loc_view_link':       loc_folder_link,
+                            'loc_download_link':   '',  # No download for folder
                         },
                         'csv_row_data': csv_data,
                     })

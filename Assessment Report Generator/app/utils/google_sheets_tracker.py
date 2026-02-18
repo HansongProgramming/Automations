@@ -286,25 +286,28 @@ class GoogleSheetsTracker:
 
         # --- Drive link fields (view + download) ---
         if drive_result.get('success'):
-            pdf_link = drive_result.get('pdf_link', '')
-            html_link = drive_result.get('html_link', '')
-            loc_link = drive_result.get('loc_link', '')
+            pdf_view_link = drive_result.get('pdf_view_link', '')
+            pdf_download_link = drive_result.get('pdf_download_link', '')
+            html_view_link = drive_result.get('html_view_link', '')
+            html_download_link = drive_result.get('html_download_link', '')
+            loc_view_link = drive_result.get('loc_view_link', '')
+            loc_download_link = drive_result.get('loc_download_link', '')
             folder_link = drive_result.get('client_folder_link', '')
 
-            pdf_view_cell      = self._hyperlink(pdf_link, 'View PDF')
-            pdf_download_cell  = self._hyperlink(self._download_link_from_view(pdf_link), 'Download PDF')
-            html_view_cell     = self._hyperlink(html_link, 'View HTML')
-            html_download_cell = self._hyperlink(self._download_link_from_view(html_link), 'Download HTML')
+            pdf_view_cell      = self._hyperlink(pdf_view_link, 'View PDF')
+            pdf_download_cell  = self._hyperlink(pdf_download_link, 'Download PDF')
+            html_view_cell     = self._hyperlink(html_view_link, 'View HTML')
+            html_download_cell = self._hyperlink(html_download_link, 'Download HTML')
             
-            # LOC can be either a file link or folder link
-            if '/file/d/' in loc_link:
-                # It's a specific LOC file
-                loc_view_cell      = self._hyperlink(loc_link, 'View LOC')
-                loc_download_cell  = self._hyperlink(self._download_link_from_view(loc_link), 'Download LOC')
+            # LOC uses direct links passed from uploader
+            if loc_download_link:
+                # It's a specific LOC file with download link
+                loc_view_cell      = self._hyperlink(loc_view_link, 'View LOC')
+                loc_download_cell  = self._hyperlink(loc_download_link, 'Download LOC')
             else:
-                # It's a folder link
-                loc_view_cell      = self._hyperlink(loc_link, 'Open LOC Folder')
-                loc_download_cell  = ''  # Folder, no direct download
+                # It's a folder link or no download available
+                loc_view_cell      = self._hyperlink(loc_view_link, 'Open LOC Folder')
+                loc_download_cell  = ''
             
             folder_cell        = self._hyperlink(folder_link, 'Open Client Folder')
         else:
