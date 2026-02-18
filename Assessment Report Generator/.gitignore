@@ -29,3 +29,6 @@ app/claim_letters/__pycache__/
 #la credentialszzzzz
 credentials/
 *.json
+
+/app/case_numbers.json
+app/case_numbers.json

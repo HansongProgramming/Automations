@@ -1,7 +1,6 @@
 from pydantic import BaseModel, HttpUrl, validator
 from typing import List, Dict, Any, Optional
 
-
 class AnalyzeRequest(BaseModel):
     """Request model for credit report analysis"""
     urls: List[str]
@@ -84,13 +83,24 @@ class AnalyzeResponse(BaseModel):
         }
 
 
+class ClientDriveLinks(BaseModel):
+    """Per-client Drive folder and file links returned to the UI."""
+    client_name:         str
+    client_folder_link:  str = ''   # top-level client folder
+    pdf_link:            str = ''   # direct link to PDF file
+    html_link:           str = ''   # direct link to HTML file
+    loc_link:            str = ''   # link to LOC subfolder
+    error:               Optional[str] = None
+
+
+# ── UPDATE CSVBatchProcessResult — add client_drive_links ───
 class CSVBatchProcessResult(BaseModel):
-    """Result for CSV batch processing"""
     total_processed: int
-    successful: int
-    failed: int
-    drive_uploads: int
-    sheet_updates: int
-    errors: List[Dict[str, Any]]
-    message: str
-    sheets_url: Optional[str] = None
+    successful:      int
+    failed:          int
+    drive_uploads:   int
+    sheet_updates:   int
+    errors:          List[Dict[str, Any]] = []
+    message:         str
+    sheets_url:      Optional[str] = None
+    client_drive_links: List[ClientDriveLinks] = []   # ← NEW FIELD
