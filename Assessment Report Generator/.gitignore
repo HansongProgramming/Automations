@@ -25,3 +25,7 @@ app/claim_letters/__pycache__/
 *$py.class
 *.so
 .Python
+
+#la credentialszzzzz
+credentials/
+*.json
