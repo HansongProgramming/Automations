@@ -74,6 +74,7 @@ claim_letter_generator = ClaimLetterGenerator(TEMPLATE_PATH)
 GOOGLE_CREDENTIALS_PATH = os.getenv("GOOGLE_CREDENTIALS_PATH", "credentials/google-service-account.json")
 GOOGLE_DRIVE_FOLDER_ID = os.getenv("GOOGLE_DRIVE_FOLDER_ID", None)
 GOOGLE_SHEETS_ID = os.getenv("GOOGLE_SHEETS_ID", None)
+GOOGLE_OAUTH_TOKEN_PATH = os.getenv("GOOGLE_OAUTH_TOKEN_PATH", "credentials/oauth-token.pkl")  # ← ADD THIS
 
 # Initialize Google services (lazy initialization)
 drive_uploader = None
@@ -90,7 +91,8 @@ def get_drive_uploader():
             )
         drive_uploader = GoogleDriveUploader(
             credentials_path=GOOGLE_CREDENTIALS_PATH,
-            folder_id=GOOGLE_DRIVE_FOLDER_ID
+            folder_id=GOOGLE_DRIVE_FOLDER_ID,
+            token_path=GOOGLE_OAUTH_TOKEN_PATH
         )
     return drive_uploader
 
