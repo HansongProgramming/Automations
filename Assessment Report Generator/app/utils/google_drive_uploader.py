@@ -163,30 +163,40 @@ class GoogleDriveUploader:
         parent_folder_id: str
     ) -> dict:
         """
-        Upload a single file using the multipart upload API.
-        Returns Drive file metadata.
+        Upload a single file using the Drive multipart upload API.
+        Builds the multipart body manually to avoid requests_toolbelt issues.
         """
-        meta = {
+        import json
+
+        meta = json.dumps({
             'name': filename,
             'parents': [parent_folder_id]
+        }).encode('utf-8')
+
+        boundary = 'DRIVE_UPLOAD_BOUNDARY_xK3mP9'
+        body = (
+            f'--{boundary}\r\n'
+            f'Content-Type: application/json; charset=UTF-8\r\n\r\n'
+        ).encode() + meta + (
+            f'\r\n--{boundary}\r\n'
+            f'Content-Type: {mime_type}\r\n\r\n'
+        ).encode() + file_bytes + f'\r\n--{boundary}--'.encode()
+
+        headers = {
+            **self._headers(),
+            'Content-Type': f'multipart/related; boundary={boundary}',
+            'Content-Length': str(len(body)),
         }
-
-        # Multipart upload
-        from requests_toolbelt.multipart.encoder import MultipartEncoder
-
-        mp = MultipartEncoder(fields={
-            'metadata': ('metadata', io.BytesIO(
-                __import__('json').dumps(meta).encode()
-            ), 'application/json; charset=UTF-8'),
-            'file': (filename, io.BytesIO(file_bytes), mime_type)
-        })
 
         upload_resp = req_lib.post(
             f"{DRIVE_UPLOAD_API}/files",
-            headers={**self._headers(), 'Content-Type': mp.content_type},
+            headers=headers,
             params={'uploadType': 'multipart', 'fields': 'id,webViewLink,webContentLink,name'},
-            data=mp
+            data=body
         )
+
+        if not upload_resp.ok:
+            logger.error(f"Upload API error {upload_resp.status_code}: {upload_resp.text}")
         upload_resp.raise_for_status()
         return upload_resp.json()
 
