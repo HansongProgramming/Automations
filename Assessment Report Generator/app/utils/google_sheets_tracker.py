@@ -6,7 +6,7 @@ Records per-client Drive folder links alongside analysis results.
 
 import logging
 import json
-from typing import List, Dict, Any, Optional, Optional
+from typing import List, Dict, Any, Optional
 from datetime import datetime
 import google.auth.transport.requests
 from google.oauth2 import service_account
@@ -295,8 +295,17 @@ class GoogleSheetsTracker:
             pdf_download_cell  = self._hyperlink(self._download_link_from_view(pdf_link), 'Download PDF')
             html_view_cell     = self._hyperlink(html_link, 'View HTML')
             html_download_cell = self._hyperlink(self._download_link_from_view(html_link), 'Download HTML')
-            loc_view_cell      = self._hyperlink(loc_link, 'Open LOC Folder')
-            loc_download_cell  = ''  # LOC is a folder, no direct download
+            
+            # LOC can be either a file link or folder link
+            if '/file/d/' in loc_link:
+                # It's a specific LOC file
+                loc_view_cell      = self._hyperlink(loc_link, 'View LOC')
+                loc_download_cell  = self._hyperlink(self._download_link_from_view(loc_link), 'Download LOC')
+            else:
+                # It's a folder link
+                loc_view_cell      = self._hyperlink(loc_link, 'Open LOC Folder')
+                loc_download_cell  = ''  # Folder, no direct download
+            
             folder_cell        = self._hyperlink(folder_link, 'Open Client Folder')
         else:
             pdf_view_cell = pdf_download_cell = ''

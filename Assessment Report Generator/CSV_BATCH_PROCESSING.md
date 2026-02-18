@@ -131,24 +131,26 @@ Your CSV file must contain a column named **"Credit File Link"** with URLs to cr
 - `Credit File Link` - URLs to credit reports
 
 **Optional Columns (for professional tracker):**
-- `Title` - Client title (e.g., Mr, Ms, Mrs)
-- `Client First Name` - Client's first name
-- `Client Surname` - Client's surname
-- `Client Date of Birth` - Client's date of birth
-- `Client Email` - Client's email address
-- `Client Phone` - Client's phone number
-- `Client Residence 1` - Primary address
-- `Client Residence 2` - Secondary address (if any)
-- `Client Residence 3` - Third address (if any)
-- `Client Residence 4` - Fourth address (if any)
-- `Defendant` - Defendant/lender name
+- `Client 1 Title` - Client title (e.g., Mr, Ms, Mrs)
+- `Client 1 First Name` - Client's first name
+- `Client 1 Surname` - Client's surname
+- `Client 1 DOB` - Client's date of birth
+- `Client 1 E-mail Address` - Client's email address
+- `Client 1 Phone Number` - Client's phone number
+- `Client 1 Residential Address Line 1` - Primary address line
+- `Client 1 Residential Address Line 2` - Secondary address line
+- `Client 1 Residential Address Line 3` - Third address line
+- `Client 1 Residential Postcode` - Postcode (combined with Address Line 1)
+- `Defendant` - Defendant/lender name (note: if multiple defendants exist in the credit report, each LOC document will get its own row)
 
 Example CSV:
 ```csv
-Title,Client First Name,Client Surname,Client Date of Birth,Client Email,Client Phone,Client Residence 1,Client Residence 2,Client Residence 3,Client Residence 4,Defendant,Credit File Link,Case Number
-Mr,John,Doe,1985-03-15,john.doe@email.com,+44 7700 900123,123 Main Street London SW1A 1AA,,,ABC Bank Ltd,https://example.com/report1.html,CASE001
-Ms,Jane,Smith,1990-07-22,jane.smith@email.com,+44 7700 900456,78 High Street Birmingham B1 1AA,,,XYZ Finance Ltd,https://example.com/report2.html,CASE002
+Client 1 Title,Client 1 First Name,Client 1 Surname,Client 1 DOB,Client 1 E-mail Address,Client 1 Phone Number,Client 1 Residential Address Line 1,Client 1 Residential Address Line 2,Client 1 Residential Address Line 3,Client 1 Residential Postcode,Defendant,Credit File Link
+Mr,Richard,Davies,12/09/1977,example@email.com,7454145118,164,Gwynedd Avenue,Swansea,SA1 6LL,Advantage Finance Limited,https://example.com/report1.html
+Ms,Jane,Smith,22/07/1990,jane.smith@email.com,7700900456,78 High Street,Birmingham,,B1 1AA,XYZ Finance Ltd,https://example.com/report2.html
 ```
+
+**Note:** When multiple defendants/lenders are found in the credit report's claims analysis, the tracker will create one row per LOC document, each showing the specific defendant and a direct link to that LOC file.
 
 ### Using the Web Interface
 
@@ -186,15 +188,15 @@ The tracker sheet will contain these columns:
 | Residence 2 | Secondary address |
 | Residence 3 | Third address |
 | Residence 4 | Fourth address |
-| Defendant | Defendant/lender name |
+| Defendant | Defendant/lender name from the LOC document (one row per defendant) |
 | Credit Report URL | Original URL |
 | Analysis Status | Success or Failed |
 | PDF Report (View) | Clickable link to view PDF in browser |
 | PDF Report (Download) | Clickable link to download PDF directly |
 | HTML Report (View) | Clickable link to view HTML in browser |
 | HTML Report (Download) | Clickable link to download HTML directly |
-| LOC Documents (View) | Clickable link to open LOC folder |
-| LOC Documents (Download) | N/A (folder) |
+| LOC Documents (View) | Clickable link to view specific LOC file (or folder if no LOC) |
+| LOC Documents (Download) | Clickable link to download LOC file directly |
 | Client Drive Folder | Clickable link to client's Drive folder |
 | Error Message | Error details (if any) |
 

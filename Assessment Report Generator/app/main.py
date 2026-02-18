@@ -964,17 +964,26 @@ async def batch_process_csv(
         for _, row in df.iterrows():
             url = safe_str(row.get('Credit File Link', ''))
             if url:
+                # Build full address with postcode
+                addr1 = safe_str(row.get('Client 1 Residential Address Line 1', ''))
+                addr2 = safe_str(row.get('Client 1 Residential Address Line 2', ''))
+                addr3 = safe_str(row.get('Client 1 Residential Address Line 3', ''))
+                postcode = safe_str(row.get('Client 1 Residential Postcode', ''))
+                
+                # Combine address line 1 with postcode for residence_1
+                residence_1 = f"{addr1} {postcode}".strip() if addr1 else postcode
+                
                 csv_row_by_url[url] = {
-                    'title': safe_str(row.get('Title', '')),
-                    'first_name': safe_str(row.get('Client First Name', '')),
-                    'surname': safe_str(row.get('Client Surname', '')),
-                    'date_of_birth': safe_str(row.get('Client Date of Birth', '')),
-                    'email': safe_str(row.get('Client Email', '')),
-                    'phone': safe_str(row.get('Client Phone', '')),
-                    'residence_1': safe_str(row.get('Client Residence 1', '')),
-                    'residence_2': safe_str(row.get('Client Residence 2', '')),
-                    'residence_3': safe_str(row.get('Client Residence 3', '')),
-                    'residence_4': safe_str(row.get('Client Residence 4', '')),
+                    'title': safe_str(row.get('Client 1 Title', '')),
+                    'first_name': safe_str(row.get('Client 1 First Name', '')),
+                    'surname': safe_str(row.get('Client 1 Surname', '')),
+                    'date_of_birth': safe_str(row.get('Client 1 DOB', '')),
+                    'email': safe_str(row.get('Client 1 E-mail Address', '')),
+                    'phone': safe_str(row.get('Client 1 Phone Number', '')),
+                    'residence_1': residence_1,
+                    'residence_2': addr2,
+                    'residence_3': addr3,
+                    'residence_4': '',  # No 4th address in your CSV
                     'defendant': safe_str(row.get('Defendant', '')),
                 }
 
@@ -1067,6 +1076,9 @@ async def batch_process_csv(
                 # ── 3e: Upload DOCX claim letters ──────────────────
                 loc_link = loc_folder_link  # default to folder if no letters
                 analysis_result = analysis_by_url.get(url, {})
+                
+                # Collect LOC uploads for per-defendant tracking
+                loc_uploads: list[dict] = []
 
                 if 'credit_analysis' in analysis_result:
                     credit_analysis = analysis_result['credit_analysis']
@@ -1095,7 +1107,12 @@ async def batch_process_csv(
                                     file_type='LOC',
                                     mime_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
                                 )
-                                # Use the last letter's link (folder link is more useful)
+                                # Store each LOC upload with defendant info
+                                loc_uploads.append({
+                                    'defendant': lender_name,
+                                    'loc_link': loc_up.get('web_view_link', loc_folder_link),
+                                    'filename': docx_filename,
+                                })
                                 upload_count += 1
                         finally:
                             if _os.path.exists(tmp_path):
@@ -1111,20 +1128,44 @@ async def batch_process_csv(
                     'error':               None,
                 }
 
-                # ── 3g: Tracking record for Sheets ─────────────────
-                tracking_records.append({
-                    'client_name':    client_name,
-                    'credit_url':     url,
-                    'analysis_result': analysis_result,
-                    'drive_result': {
-                        'success':             True,
-                        'client_folder_link':  client_folder_link,
-                        'pdf_link':            pdf_link,
-                        'html_link':           html_link,
-                        'loc_link':            loc_folder_link,
-                    },
-                    'csv_row_data': csv_row_by_url.get(url, {}),
-                })
+                # ── 3g: Tracking records for Sheets (one per LOC document) ─
+                csv_data = csv_row_by_url.get(url, {})
+                
+                if loc_uploads:
+                    # Create one row per LOC document
+                    for loc_info in loc_uploads:
+                        # Override defendant with the lender name for this LOC
+                        row_csv_data = csv_data.copy()
+                        row_csv_data['defendant'] = loc_info['defendant']
+                        
+                        tracking_records.append({
+                            'client_name':    client_name,
+                            'credit_url':     url,
+                            'analysis_result': analysis_result,
+                            'drive_result': {
+                                'success':             True,
+                                'client_folder_link':  client_folder_link,
+                                'pdf_link':            pdf_link,
+                                'html_link':           html_link,
+                                'loc_link':            loc_info['loc_link'],  # specific LOC file link
+                            },
+                            'csv_row_data': row_csv_data,
+                        })
+                else:
+                    # No LOC documents, create single row with folder link
+                    tracking_records.append({
+                        'client_name':    client_name,
+                        'credit_url':     url,
+                        'analysis_result': analysis_result,
+                        'drive_result': {
+                            'success':             True,
+                            'client_folder_link':  client_folder_link,
+                            'pdf_link':            pdf_link,
+                            'html_link':           html_link,
+                            'loc_link':            loc_folder_link,
+                        },
+                        'csv_row_data': csv_data,
+                    })
 
             except Exception as e:
                 logger.error(f"Processing failed for {client_name}: {e}", exc_info=True)
