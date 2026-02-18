@@ -1,4 +1,4 @@
-Client Name,Credit File Link,Case Number,Notes
-John Doe,https://example.com/credit-report-1.html,CASE001,Initial assessment
-Jane Smith,https://example.com/credit-report-2.html,CASE002,Follow-up review
-Robert Johnson,https://example.com/credit-report-3.html,CASE003,Urgent case
+Title,Client First Name,Client Surname,Client Date of Birth,Client Email,Client Phone,Client Residence 1,Client Residence 2,Client Residence 3,Client Residence 4,Defendant,Credit File Link,Case Number,Notes
+Mr,John,Doe,1985-03-15,john.doe@email.com,+44 7700 900123,123 Main Street London SW1A 1AA,45 Oak Avenue Manchester M1 2AB,,,ABC Bank Ltd,https://example.com/credit-report-1.html,CASE001,Initial assessment
+Ms,Jane,Smith,1990-07-22,jane.smith@email.com,+44 7700 900456,78 High Street Birmingham B1 1AA,,,,XYZ Finance Ltd,https://example.com/credit-report-2.html,CASE002,Follow-up review
+Mr,Robert,Johnson,1978-11-30,robert.johnson@email.com,+44 7700 900789,99 Park Road Leeds LS1 3EX,12 Chapel Lane York YO1 7EX,5 Castle Way Newcastle NE1 4AA,,Acme Credit Corp,https://example.com/credit-report-3.html,CASE003,Urgent case

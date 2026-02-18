@@ -6,7 +6,7 @@ Records per-client Drive folder links alongside analysis results.
 
 import logging
 import json
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Optional
 from datetime import datetime
 import google.auth.transport.requests
 from google.oauth2 import service_account
@@ -25,28 +25,50 @@ class GoogleSheetsTracker:
 
     Sheet columns:
         A  Timestamp
-        B  Client Name
-        C  Credit Report URL
-        D  Analysis Status
-        E  Risk Level
-        F  Flagged Indicators
-        G  PDF Link          (clickable)
-        H  HTML Link         (clickable)
-        I  LOC Folder Link   (clickable)
-        J  Client Folder     (clickable - top-level Drive folder)
-        K  Error Message
+        B  Title
+        C  First Name
+        D  Surname
+        E  Date of Birth
+        F  Email
+        G  Phone
+        H  Residence 1
+        I  Residence 2
+        J  Residence 3
+        K  Residence 4
+        L  Defendant
+        M  Credit Report URL
+        N  Analysis Status
+        O  PDF Report (View)
+        P  PDF Report (Download)
+        Q  HTML Report (View)
+        R  HTML Report (Download)
+        S  LOC Documents (View)
+        T  LOC Documents (Download)
+        U  Client Drive Folder
+        V  Error Message
     """
 
     HEADERS = [
         'Timestamp',
-        'Client Name',
+        'Title',
+        'First Name',
+        'Surname',
+        'Date of Birth',
+        'Email',
+        'Phone',
+        'Residence 1',
+        'Residence 2',
+        'Residence 3',
+        'Residence 4',
+        'Defendant',
         'Credit Report URL',
         'Analysis Status',
-        'Risk Level',
-        'Flagged Indicators',
-        'PDF Report',
-        'HTML Report',
-        'LOC Documents',
+        'PDF Report (View)',
+        'PDF Report (Download)',
+        'HTML Report (View)',
+        'HTML Report (Download)',
+        'LOC Documents (View)',
+        'LOC Documents (Download)',
         'Client Drive Folder',
         'Error Message',
     ]
@@ -185,15 +207,33 @@ class GoogleSheetsTracker:
             return f'=HYPERLINK("{url}","{label}")'
         return ''
 
+    def _download_link_from_view(self, view_url: str) -> str:
+        """
+        Convert a Google Drive view link to a direct download link.
+        View:     https://drive.google.com/file/d/{file_id}/view
+        Download: https://drive.google.com/uc?id={file_id}&export=download
+        """
+        if not view_url:
+            return ''
+        # Extract file_id from view link pattern
+        if '/file/d/' in view_url:
+            try:
+                file_id = view_url.split('/file/d/')[1].split('/')[0]
+                return f'https://drive.google.com/uc?id={file_id}&export=download'
+            except (IndexError, AttributeError):
+                pass
+        return ''
+
     def _build_row(
         self,
         client_name: str,
         credit_url: str,
         analysis_result: Dict[str, Any],
         drive_result: Dict[str, Any],
+        csv_row_data: Optional[Dict[str, Any]] = None,
     ) -> list:
         """
-        Build a single sheet row from analysis + drive results.
+        Build a single sheet row from analysis + drive results + CSV row data.
 
         drive_result shape (from uploader):
             {
@@ -204,46 +244,88 @@ class GoogleSheetsTracker:
                 'success':   bool,
                 'error':     str
             }
+
+        csv_row_data shape (from CSV):
+            {
+                'title': str,
+                'first_name': str,
+                'surname': str,
+                'date_of_birth': str,
+                'email': str,
+                'phone': str,
+                'residence_1': str,
+                'residence_2': str,
+                'residence_3': str,
+                'residence_4': str,
+                'defendant': str,
+            }
         """
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        csv_data = csv_row_data or {}
+
+        # --- CSV data fields ---
+        title = csv_data.get('title', '')
+        first_name = csv_data.get('first_name', '')
+        surname = csv_data.get('surname', '')
+        date_of_birth = csv_data.get('date_of_birth', '')
+        email = csv_data.get('email', '')
+        phone = csv_data.get('phone', '')
+        residence_1 = csv_data.get('residence_1', '')
+        residence_2 = csv_data.get('residence_2', '')
+        residence_3 = csv_data.get('residence_3', '')
+        residence_4 = csv_data.get('residence_4', '')
+        defendant = csv_data.get('defendant', '')
 
         # --- Analysis fields ---
         if 'error' in analysis_result or not analysis_result.get('credit_analysis'):
             status = 'Failed'
-            risk_level = ''
-            flagged_count = ''
             error_msg = analysis_result.get('error', 'Unknown error')
         else:
             status = 'Success'
-            analysis = analysis_result.get('credit_analysis', {})
-            risk_level = analysis.get('risk_assessment', {}).get('level', 'Unknown')
-            indicators = analysis.get('affordability_indicators', {})
-            flagged_count = sum(
-                1 for v in indicators.values()
-                if isinstance(v, dict) and v.get('flagged', False)
-            )
             error_msg = ''
 
-        # --- Drive link fields ---
+        # --- Drive link fields (view + download) ---
         if drive_result.get('success'):
-            pdf_cell     = self._hyperlink(drive_result.get('pdf_link', ''),    'View PDF')
-            html_cell    = self._hyperlink(drive_result.get('html_link', ''),   'View HTML')
-            loc_cell     = self._hyperlink(drive_result.get('loc_link', ''),    'Open LOC Folder')
-            folder_cell  = self._hyperlink(drive_result.get('client_folder_link', ''), 'Open Client Folder')
+            pdf_link = drive_result.get('pdf_link', '')
+            html_link = drive_result.get('html_link', '')
+            loc_link = drive_result.get('loc_link', '')
+            folder_link = drive_result.get('client_folder_link', '')
+
+            pdf_view_cell      = self._hyperlink(pdf_link, 'View PDF')
+            pdf_download_cell  = self._hyperlink(self._download_link_from_view(pdf_link), 'Download PDF')
+            html_view_cell     = self._hyperlink(html_link, 'View HTML')
+            html_download_cell = self._hyperlink(self._download_link_from_view(html_link), 'Download HTML')
+            loc_view_cell      = self._hyperlink(loc_link, 'Open LOC Folder')
+            loc_download_cell  = ''  # LOC is a folder, no direct download
+            folder_cell        = self._hyperlink(folder_link, 'Open Client Folder')
         else:
-            pdf_cell = html_cell = loc_cell = folder_cell = ''
+            pdf_view_cell = pdf_download_cell = ''
+            html_view_cell = html_download_cell = ''
+            loc_view_cell = loc_download_cell = ''
+            folder_cell = ''
             error_msg = error_msg or drive_result.get('error', 'Upload failed')
 
         return [
             timestamp,
-            client_name,
+            title,
+            first_name,
+            surname,
+            date_of_birth,
+            email,
+            phone,
+            residence_1,
+            residence_2,
+            residence_3,
+            residence_4,
+            defendant,
             credit_url,
             status,
-            risk_level,
-            flagged_count,
-            pdf_cell,
-            html_cell,
-            loc_cell,
+            pdf_view_cell,
+            pdf_download_cell,
+            html_view_cell,
+            html_download_cell,
+            loc_view_cell,
+            loc_download_cell,
             folder_cell,
             error_msg,
         ]
@@ -258,11 +340,12 @@ class GoogleSheetsTracker:
         credit_url: str,
         analysis_result: Dict[str, Any],
         drive_result: Dict[str, Any],
+        csv_row_data: Optional[Dict[str, Any]] = None,
         sheet_name: str = "Tracker"
     ):
-        row = self._build_row(client_name, credit_url, analysis_result, drive_result)
+        row = self._build_row(client_name, credit_url, analysis_result, drive_result, csv_row_data)
         resp = req_lib.post(
-            f"{SHEETS_API}/{self.spreadsheet_id}/values/{sheet_name}!A:K:append",
+            f"{SHEETS_API}/{self.spreadsheet_id}/values/{sheet_name}!A:V:append",
             headers=self._headers(),
             params={'valueInputOption': 'USER_ENTERED', 'insertDataOption': 'INSERT_ROWS'},
             json={'values': [row]}
@@ -280,6 +363,8 @@ class GoogleSheetsTracker:
 
         Each record must have:
             client_name, credit_url, analysis_result, drive_result
+        Optional:
+            csv_row_data (dict with title, first_name, surname, etc.)
         """
         rows = []
         for record in records:
@@ -288,6 +373,7 @@ class GoogleSheetsTracker:
                 credit_url=record['credit_url'],
                 analysis_result=record['analysis_result'],
                 drive_result=record['drive_result'],
+                csv_row_data=record.get('csv_row_data'),
             )
             rows.append(row)
 
@@ -295,7 +381,7 @@ class GoogleSheetsTracker:
             return
 
         resp = req_lib.post(
-            f"{SHEETS_API}/{self.spreadsheet_id}/values/{sheet_name}!A:K:append",
+            f"{SHEETS_API}/{self.spreadsheet_id}/values/{sheet_name}!A:V:append",
             headers=self._headers(),
             params={'valueInputOption': 'USER_ENTERED', 'insertDataOption': 'INSERT_ROWS'},
             json={'values': rows}
@@ -306,7 +392,7 @@ class GoogleSheetsTracker:
     async def clear_sheet(self, sheet_name: str = "Tracker", keep_headers: bool = True):
         start_row = 2 if keep_headers else 1
         resp = req_lib.post(
-            f"{SHEETS_API}/{self.spreadsheet_id}/values/{sheet_name}!A{start_row}:K:clear",
+            f"{SHEETS_API}/{self.spreadsheet_id}/values/{sheet_name}!A{start_row}:V:clear",
             headers=self._headers(),
             json={}
         )

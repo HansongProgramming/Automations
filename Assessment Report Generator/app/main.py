@@ -953,6 +953,31 @@ async def batch_process_csv(
 
         logger.info(f"Found {len(urls)} URL(s) to process")
 
+        # ── Build URL → CSV row data mapping ───────────────────────
+        def safe_str(val):
+            """Convert value to string, return empty string if NaN/None."""
+            if pd.isna(val):
+                return ''
+            return str(val).strip()
+
+        csv_row_by_url: dict[str, dict] = {}
+        for _, row in df.iterrows():
+            url = safe_str(row.get('Credit File Link', ''))
+            if url:
+                csv_row_by_url[url] = {
+                    'title': safe_str(row.get('Title', '')),
+                    'first_name': safe_str(row.get('Client First Name', '')),
+                    'surname': safe_str(row.get('Client Surname', '')),
+                    'date_of_birth': safe_str(row.get('Client Date of Birth', '')),
+                    'email': safe_str(row.get('Client Email', '')),
+                    'phone': safe_str(row.get('Client Phone', '')),
+                    'residence_1': safe_str(row.get('Client Residence 1', '')),
+                    'residence_2': safe_str(row.get('Client Residence 2', '')),
+                    'residence_3': safe_str(row.get('Client Residence 3', '')),
+                    'residence_4': safe_str(row.get('Client Residence 4', '')),
+                    'defendant': safe_str(row.get('Defendant', '')),
+                }
+
         # ── Step 2: Fetch & analyse ────────────────────────────────
         fetch_results = await fetch_multiple_html(urls)
         analysis_tasks, analysis_results = [], []
@@ -1097,7 +1122,8 @@ async def batch_process_csv(
                         'pdf_link':            pdf_link,
                         'html_link':           html_link,
                         'loc_link':            loc_folder_link,
-                    }
+                    },
+                    'csv_row_data': csv_row_by_url.get(url, {}),
                 })
 
             except Exception as e:

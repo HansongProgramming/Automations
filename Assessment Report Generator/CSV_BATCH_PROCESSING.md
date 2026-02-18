@@ -127,11 +127,27 @@ The application will be available at:
 
 Your CSV file must contain a column named **"Credit File Link"** with URLs to credit reports.
 
+**Required Column:**
+- `Credit File Link` - URLs to credit reports
+
+**Optional Columns (for professional tracker):**
+- `Title` - Client title (e.g., Mr, Ms, Mrs)
+- `Client First Name` - Client's first name
+- `Client Surname` - Client's surname
+- `Client Date of Birth` - Client's date of birth
+- `Client Email` - Client's email address
+- `Client Phone` - Client's phone number
+- `Client Residence 1` - Primary address
+- `Client Residence 2` - Secondary address (if any)
+- `Client Residence 3` - Third address (if any)
+- `Client Residence 4` - Fourth address (if any)
+- `Defendant` - Defendant/lender name
+
 Example CSV:
 ```csv
-Client Name,Credit File Link,Case Number
-John Doe,https://example.com/report1.html,CASE001
-Jane Smith,https://example.com/report2.html,CASE002
+Title,Client First Name,Client Surname,Client Date of Birth,Client Email,Client Phone,Client Residence 1,Client Residence 2,Client Residence 3,Client Residence 4,Defendant,Credit File Link,Case Number
+Mr,John,Doe,1985-03-15,john.doe@email.com,+44 7700 900123,123 Main Street London SW1A 1AA,,,ABC Bank Ltd,https://example.com/report1.html,CASE001
+Ms,Jane,Smith,1990-07-22,jane.smith@email.com,+44 7700 900456,78 High Street Birmingham B1 1AA,,,XYZ Finance Ltd,https://example.com/report2.html,CASE002
 ```
 
 ### Using the Web Interface
@@ -160,14 +176,26 @@ The tracker sheet will contain these columns:
 | Column | Description |
 |--------|-------------|
 | Timestamp | When the report was processed |
-| Client Name | Name from the credit report |
+| Title | Client title (Mr, Ms, etc.) |
+| First Name | Client's first name |
+| Surname | Client's surname |
+| Date of Birth | Client's date of birth |
+| Email | Client's email address |
+| Phone | Client's phone number |
+| Residence 1 | Primary address |
+| Residence 2 | Secondary address |
+| Residence 3 | Third address |
+| Residence 4 | Fourth address |
+| Defendant | Defendant/lender name |
 | Credit Report URL | Original URL |
 | Analysis Status | Success or Failed |
-| Total Score | Affordability score |
-| Risk Level | Risk assessment level |
-| Flagged Indicators | Number of flagged indicators |
-| PDF Report Link | Clickable link to download PDF |
-| File ID | Google Drive file ID |
+| PDF Report (View) | Clickable link to view PDF in browser |
+| PDF Report (Download) | Clickable link to download PDF directly |
+| HTML Report (View) | Clickable link to view HTML in browser |
+| HTML Report (Download) | Clickable link to download HTML directly |
+| LOC Documents (View) | Clickable link to open LOC folder |
+| LOC Documents (Download) | N/A (folder) |
+| Client Drive Folder | Clickable link to client's Drive folder |
 | Error Message | Error details (if any) |
 
 ## Troubleshooting
