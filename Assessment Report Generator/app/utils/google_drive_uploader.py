@@ -91,7 +91,7 @@ class GoogleDriveUploader:
         resp = req_lib.get(
             f"{DRIVE_API}/files",
             headers=self._headers(),
-            params={'q': query, 'fields': 'files(id,name)', 'spaces': 'drive'}
+            params={'q': query, 'fields': 'files(id,name)', 'spaces': 'drive', 'supportsAllDrives': 'true', 'includeItemsFromAllDrives': 'true', 'corpora': 'allDrives'}
         )
         resp.raise_for_status()
         files = resp.json().get('files', [])
@@ -110,7 +110,7 @@ class GoogleDriveUploader:
                 f"{DRIVE_API}/files",
                 headers=self._headers(),
                 json=meta,
-                params={'fields': 'id'}
+                params={'fields': 'id', 'supportsAllDrives': 'true'}
             )
             create_resp.raise_for_status()
             folder_id = create_resp.json()['id']
@@ -194,7 +194,7 @@ class GoogleDriveUploader:
         upload_resp = req_lib.post(
             f"{DRIVE_UPLOAD_API}/files",
             headers=headers,
-            params={'uploadType': 'multipart', 'fields': 'id,webViewLink,webContentLink,name'},
+            params={'uploadType': 'multipart', 'fields': 'id,webViewLink,webContentLink,name', 'supportsAllDrives': 'true'},
             data=body
         )
 
@@ -208,6 +208,7 @@ class GoogleDriveUploader:
         resp = req_lib.post(
             f"{DRIVE_API}/files/{file_id}/permissions",
             headers=self._headers(),
+            params={'supportsAllDrives': 'true'},
             json={'type': 'anyone', 'role': 'reader'}
         )
         if not resp.ok:
