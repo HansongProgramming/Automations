@@ -657,7 +657,188 @@
             color: var(--muted);
         }
 
+        /* ── Landing Hero ── */
+        .landing-hero {
+            position: relative;
+            z-index: 1;
+            min-height: 70vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 6rem 2.5rem 4rem;
+            background: linear-gradient(180deg, #080c14 0%, #0a1628 50%, #080c14 100%);
+            overflow: hidden;
+        }
+
+        .landing-hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120%;
+            height: 100%;
+            background: radial-gradient(ellipse 80% 50% at 50% 20%, rgba(0,212,255,0.08) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        .landing-hero h1 {
+            font-size: clamp(2.8rem, 6vw, 4.5rem);
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, #00d4ff 0%, #00a8cc 50%, #00d4ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .landing-hero > p {
+            font-size: 1.15rem;
+            color: var(--muted);
+            max-width: 650px;
+            line-height: 1.8;
+            margin-bottom: 4rem;
+        }
+
+        /* ── Feature Cards ── */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            max-width: 1100px;
+            width: 100%;
+            margin: 0 auto;
+            position: relative;
+            z-index: 2;
+        }
+
+        .feature-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: left;
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            border-color: var(--accent-dim);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0,212,255,0.1);
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--accent-glow);
+            border: 1px solid rgba(0,212,255,0.2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.25rem;
+        }
+
+        .feature-icon svg {
+            width: 24px;
+            height: 24px;
+            stroke: var(--accent);
+            fill: none;
+            stroke-width: 2;
+        }
+
+        .feature-card h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 0.75rem;
+        }
+
+        .feature-card p {
+            font-size: 0.9rem;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        /* ── How It Works ── */
+        .how-it-works {
+            position: relative;
+            z-index: 1;
+            padding: 5rem 2.5rem;
+            background: var(--surface);
+        }
+
+        .how-it-works-inner {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .how-it-works h2 {
+            font-size: clamp(1.8rem, 4vw, 2.5rem);
+            font-weight: 800;
+            color: var(--accent);
+            margin-bottom: 0.75rem;
+        }
+
+        .how-it-works > .how-it-works-inner > p {
+            color: var(--muted);
+            font-size: 1rem;
+            margin-bottom: 3rem;
+        }
+
+        .steps {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            text-align: left;
+        }
+
+        .step {
+            display: flex;
+            align-items: flex-start;
+            gap: 1.25rem;
+        }
+
+        .step-num {
+            flex-shrink: 0;
+            width: 44px;
+            height: 44px;
+            background: var(--accent);
+            color: var(--bg);
+            font-family: var(--display);
+            font-weight: 800;
+            font-size: 1.1rem;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .step-content h4 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 0.35rem;
+        }
+
+        .step-content p {
+            font-size: 0.9rem;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
         /* ── Responsive ── */
+        @media (max-width: 900px) {
+            .features-grid {
+                grid-template-columns: 1fr;
+                max-width: 400px;
+            }
+        }
+
         @media (max-width: 640px) {
             header { padding: 1rem 1.25rem; }
             .main { padding: 0 1.25rem; }
@@ -666,6 +847,9 @@
             .stat-item { border-right: none; border-bottom: 1px solid var(--border); }
             .footer-inner { grid-template-columns: 1fr; }
             .link-row { flex-wrap: wrap; }
+            .landing-hero { padding: 4rem 1.5rem 3rem; min-height: auto; }
+            .landing-hero h1 { font-size: 2.2rem; }
+            .how-it-works { padding: 3rem 1.5rem; }
         }
     </style>
 </head>
@@ -677,7 +861,69 @@
     <div class="header-tag">Affordability Assessment Report Generator</div>
 </header>
 
-<!-- ── Hero ── -->
+<!-- ── Landing Hero ── -->
+<section class="landing-hero">
+    <h1>Unlock<br>Affordability<br>Insights</h1>
+    <p>Generate comprehensive affordability assessment reports instantly. Analyze lending practices and identify compliance issues with precision.</p>
+
+    <div class="features-grid">
+        <div class="feature-card">
+            <div class="feature-icon">
+                <svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            </div>
+            <h3>Instant Reports</h3>
+            <p>Generate detailed affordability assessments in seconds, not hours.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">
+                <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <h3>Compliance Ready</h3>
+            <p>FCA-aligned analysis and regulatory-compliant documentation.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">
+                <svg viewBox="0 0 24 24"><path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/></svg>
+            </div>
+            <h3>Data-Driven</h3>
+            <p>Leverage advanced analytics to identify lending patterns and risks.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ── How It Works ── -->
+<section class="how-it-works">
+    <div class="how-it-works-inner">
+        <h2>How It Works</h2>
+        <p>Simple, transparent, and efficient</p>
+
+        <div class="steps">
+            <div class="step">
+                <div class="step-num">1</div>
+                <div class="step-content">
+                    <h4>Submit Links</h4>
+                    <p>Paste Credit Report links into our system.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <div class="step-content">
+                    <h4>Automated Analysis</h4>
+                    <p>Our AI-powered engine analyzes lending practices and compliance metrics.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">3</div>
+                <div class="step-content">
+                    <h4>Get Report</h4>
+                    <p>Receive comprehensive, audit-ready reports with actionable insights.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── CSV Batch Processing ── -->
 <section class="hero">
     <div class="hero-eyebrow">Automated workflow</div>
     <h1>CSV <span>Batch</span><br>Processing</h1>
