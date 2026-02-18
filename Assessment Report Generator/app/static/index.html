@@ -998,5 +998,175 @@
         return str.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 </script>
+
+<style>
+    /* ── Footer Blue Theme ── */
+    .footer {
+        position: relative;
+        z-index: 1;
+        background: linear-gradient(180deg, #0a1628 0%, #081220 100%);
+        border-top: 1px solid rgba(0, 180, 216, 0.15);
+        padding: 4rem 2.5rem 2rem;
+        margin-top: 4rem;
+    }
+
+    .footer::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(0, 180, 216, 0.5), transparent);
+    }
+
+    .footer-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr 1.5fr;
+        gap: 3rem;
+    }
+
+    .footer-brand h3 {
+        font-family: var(--display);
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #00d4ff;
+        margin-bottom: 1rem;
+        letter-spacing: 0.02em;
+    }
+
+    .footer-brand p {
+        font-size: 0.9rem;
+        color: #8b9dc3;
+        line-height: 1.7;
+        max-width: 320px;
+    }
+
+    .footer-section h4 {
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: #00d4ff;
+        margin-bottom: 1.25rem;
+    }
+
+    .footer-section ul {
+        list-style: none;
+    }
+
+    .footer-section li {
+        margin-bottom: 0.75rem;
+    }
+
+    .footer-section a {
+        font-size: 0.9rem;
+        color: #8b9dc3;
+        text-decoration: none;
+        transition: color 0.2s ease;
+    }
+
+    .footer-section a:hover {
+        color: #00d4ff;
+    }
+
+    .footer-contact p {
+        font-size: 0.85rem;
+        color: #8b9dc3;
+        margin-bottom: 0.6rem;
+        line-height: 1.6;
+    }
+
+    .footer-contact a {
+        color: #8b9dc3;
+        text-decoration: none;
+        transition: color 0.2s ease;
+    }
+
+    .footer-contact a:hover {
+        color: #00d4ff;
+    }
+
+    .footer-contact span {
+        color: #5a7199;
+        font-family: var(--mono);
+        font-size: 0.8rem;
+    }
+
+    .footer-bottom {
+        max-width: 1200px;
+        margin: 3rem auto 0;
+        padding-top: 1.5rem;
+        border-top: 1px solid rgba(0, 180, 216, 0.1);
+        text-align: center;
+    }
+
+    .footer-bottom p {
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        color: #5a7199;
+        line-height: 1.8;
+    }
+
+    /* Responsive footer */
+    @media (max-width: 900px) {
+        .footer-container {
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+        .footer-brand {
+            grid-column: 1 / -1;
+        }
+    }
+
+    @media (max-width: 600px) {
+        .footer-container {
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            text-align: center;
+        }
+        .footer-brand p {
+            max-width: none;
+        }
+    }
+</style>
+
+<footer class="footer">
+    <div class="footer-container">
+        <div class="footer-brand">
+            <h3>Systemize Solutions</h3>
+            <p>Empowering businesses through innovative automation solutions, cutting-edge web and app development, and strategic digital marketing services.</p>
+        </div>
+        
+        <div class="footer-section">
+            <h4>Company</h4>
+            <ul>
+                <li><a href="#">About Us</a></li>
+                <li><a href="#">Contact</a></li>
+            </ul>
+        </div>
+        
+        <div class="footer-section">
+            <h4>Legal</h4>
+            <ul>
+                <li><a href="#">Privacy Policy</a></li>
+                <li><a href="#">Terms of Service</a></li>
+            </ul>
+        </div>
+        
+        <div class="footer-section footer-contact">
+            <h4>Contact</h4>
+            <p><span>E:</span> <a href="mailto:info@systemizesolutions.co.uk">info@systemizesolutions.co.uk</a></p>
+            <p><span>P:</span> <a href="tel:+447597195645">+44 7597 195 645</a></p>
+        </div>
+    </div>
+    
+    <div class="footer-bottom">
+        <p>© 2026 Systemize Solutions Ltd. All rights reserved.<br>Registered in England and Wales. Company No. 15608791</p>
+    </div>
+</footer>
+
 </body>
 </html>
