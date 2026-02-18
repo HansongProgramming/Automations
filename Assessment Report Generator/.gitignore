@@ -29,6 +29,8 @@ app/claim_letters/__pycache__/
 #la credentialszzzzz
 credentials/
 *.json
-
+credentials/oauth-token.pkl
+credentials/oauth-client.json
 /app/case_numbers.json
 app/case_numbers.json
+
