@@ -112,7 +112,8 @@ def get_sheets_tracker():
             )
         sheets_tracker = GoogleSheetsTracker(
             credentials_path=GOOGLE_CREDENTIALS_PATH,
-            spreadsheet_id=GOOGLE_SHEETS_ID
+            spreadsheet_id=GOOGLE_SHEETS_ID,
+            token_path=GOOGLE_OAUTH_TOKEN_PATH
         )
     return sheets_tracker
 

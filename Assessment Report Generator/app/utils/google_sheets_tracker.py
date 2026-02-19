@@ -1,51 +1,33 @@
 """
 Google Sheets tracker utility.
-Uses requests-based transport to avoid httplib2 timeout issues.
+Uses OAuth credentials (personal Gmail compatible) instead of service account.
 Records per-client Drive folder links alongside analysis results.
 """
 
 import logging
 import json
+import os
+import pickle
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 import google.auth.transport.requests
-from google.oauth2 import service_account
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
 import requests as req_lib
 
 logger = logging.getLogger(__name__)
 
-SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
+SCOPES = [
+    'https://www.googleapis.com/auth/spreadsheets',
+    'https://www.googleapis.com/auth/drive',
+]
 SHEETS_API = 'https://sheets.googleapis.com/v4/spreadsheets'
 
 
 class GoogleSheetsTracker:
     """
     Handle writing tracker data to Google Sheets.
-    Uses requests transport instead of httplib2 to avoid Windows timeout issues.
-
-    Sheet columns:
-        A  Timestamp
-        B  Title
-        C  First Name
-        D  Surname
-        E  Date of Birth
-        F  Email
-        G  Phone
-        H  Residence 1
-        I  Residence 2
-        J  Residence 3
-        K  Residence 4
-        L  Defendant
-        M  Credit Report URL
-        N  Analysis Status
-        O  PDF Report (View)
-        P  PDF Report (Download)
-        Q  HTML Report (View)
-        R  HTML Report (Download)
-        S  LOC Documents (View)
-        T  LOC Documents (Download)
-        U  Client Drive Folder
-        V  Error Message
+    Uses OAuth user credentials — works with personal Gmail accounts.
     """
 
     HEADERS = [
@@ -73,32 +55,51 @@ class GoogleSheetsTracker:
         'Error Message',
     ]
 
-    def __init__(self, credentials_path: str, spreadsheet_id: str):
+    def __init__(
+        self,
+        credentials_path: str,
+        spreadsheet_id: str,
+        token_path: str = 'credentials/oauth-token.pkl'
+    ):
         self.credentials_path = credentials_path
         self.spreadsheet_id = spreadsheet_id
-        self._creds = None
-        self._sheet_id_cache: dict[str, int] = {}
+        self.token_path = token_path
+        self._creds: Optional[Credentials] = None
+        self._sheet_id_cache: dict = {}
         self._initialize()
 
     # ------------------------------------------------------------------
-    # Auth helpers
+    # Auth
     # ------------------------------------------------------------------
 
     def _initialize(self):
-        self._creds = service_account.Credentials.from_service_account_file(
-            self.credentials_path,
-            scopes=SCOPES
-        )
-        self._refresh_token()
-        logger.info("Google Sheets tracker initialised (requests transport)")
+        if os.path.exists(self.token_path):
+            with open(self.token_path, 'rb') as f:
+                self._creds = pickle.load(f)
+            logger.info("Loaded OAuth token from disk")
 
-    def _refresh_token(self):
-        auth_request = google.auth.transport.requests.Request()
-        self._creds.refresh(auth_request)
+        if self._creds and self._creds.expired and self._creds.refresh_token:
+            self._creds.refresh(google.auth.transport.requests.Request())
+            self._save_token()
+            logger.info("OAuth token refreshed")
+        elif not self._creds or not self._creds.valid:
+            logger.warning("OAuth token missing or invalid — starting re-auth flow")
+            flow = InstalledAppFlow.from_client_secrets_file(
+                self.credentials_path, SCOPES
+            )
+            self._creds = flow.run_local_server(port=0)
+            self._save_token()
+
+        logger.info("Google Sheets tracker initialised (OAuth transport)")
+
+    def _save_token(self):
+        with open(self.token_path, 'wb') as f:
+            pickle.dump(self._creds, f)
 
     def _headers(self) -> dict:
-        if not self._creds.valid:
-            self._refresh_token()
+        if self._creds.expired and self._creds.refresh_token:
+            self._creds.refresh(google.auth.transport.requests.Request())
+            self._save_token()
         return {
             'Authorization': f'Bearer {self._creds.token}',
             'Content-Type': 'application/json'
@@ -119,14 +120,12 @@ class GoogleSheetsTracker:
     def _get_sheet_id(self, sheet_name: str) -> int:
         if sheet_name in self._sheet_id_cache:
             return self._sheet_id_cache[sheet_name]
-
         spreadsheet = self._get_spreadsheet()
         for sheet in spreadsheet.get('sheets', []):
             props = sheet['properties']
             if props['title'] == sheet_name:
                 self._sheet_id_cache[sheet_name] = props['sheetId']
                 return props['sheetId']
-
         raise ValueError(f"Sheet '{sheet_name}' not found")
 
     def _sheet_exists(self, sheet_name: str) -> bool:
@@ -146,7 +145,6 @@ class GoogleSheetsTracker:
         return resp.json()
 
     async def initialize_sheet(self, sheet_name: str = "Tracker"):
-        """Create sheet tab if missing, write bold headers."""
         try:
             if not self._sheet_exists(sheet_name):
                 self._batch_update([{
@@ -156,7 +154,6 @@ class GoogleSheetsTracker:
 
             sheet_id = self._get_sheet_id(sheet_name)
 
-            # Write headers
             resp = req_lib.put(
                 f"{SHEETS_API}/{self.spreadsheet_id}/values/{sheet_name}!A1:{self._col_letter(len(self.HEADERS))}1",
                 headers=self._headers(),
@@ -165,7 +162,6 @@ class GoogleSheetsTracker:
             )
             resp.raise_for_status()
 
-            # Bold header row
             self._batch_update([{
                 'repeatCell': {
                     'range': {
@@ -195,7 +191,6 @@ class GoogleSheetsTracker:
 
     @staticmethod
     def _col_letter(n: int) -> str:
-        """Convert 1-based column number to letter (1→A, 11→K)."""
         result = ''
         while n:
             n, r = divmod(n - 1, 26)
@@ -207,23 +202,6 @@ class GoogleSheetsTracker:
             return f'=HYPERLINK("{url}","{label}")'
         return ''
 
-    def _download_link_from_view(self, view_url: str) -> str:
-        """
-        Convert a Google Drive view link to a direct download link.
-        View:     https://drive.google.com/file/d/{file_id}/view
-        Download: https://drive.google.com/uc?id={file_id}&export=download
-        """
-        if not view_url:
-            return ''
-        # Extract file_id from view link pattern
-        if '/file/d/' in view_url:
-            try:
-                file_id = view_url.split('/file/d/')[1].split('/')[0]
-                return f'https://drive.google.com/uc?id={file_id}&export=download'
-            except (IndexError, AttributeError):
-                pass
-        return ''
-
     def _build_row(
         self,
         client_name: str,
@@ -232,84 +210,50 @@ class GoogleSheetsTracker:
         drive_result: Dict[str, Any],
         csv_row_data: Optional[Dict[str, Any]] = None,
     ) -> list:
-        """
-        Build a single sheet row from analysis + drive results + CSV row data.
-
-        drive_result shape (from uploader):
-            {
-                'client_folder_link': str,   # link to ClientName/ folder
-                'pdf_link':  str,
-                'html_link': str,
-                'loc_link':  str,            # link to LOC/ subfolder
-                'success':   bool,
-                'error':     str
-            }
-
-        csv_row_data shape (from CSV):
-            {
-                'title': str,
-                'first_name': str,
-                'surname': str,
-                'date_of_birth': str,
-                'email': str,
-                'phone': str,
-                'residence_1': str,
-                'residence_2': str,
-                'residence_3': str,
-                'residence_4': str,
-                'defendant': str,
-            }
-        """
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         csv_data = csv_row_data or {}
 
-        # --- CSV data fields ---
-        title = csv_data.get('title', '')
-        first_name = csv_data.get('first_name', '')
-        surname = csv_data.get('surname', '')
+        title         = csv_data.get('title', '')
+        first_name    = csv_data.get('first_name', '')
+        surname       = csv_data.get('surname', '')
         date_of_birth = csv_data.get('date_of_birth', '')
-        email = csv_data.get('email', '')
-        phone = csv_data.get('phone', '')
-        residence_1 = csv_data.get('residence_1', '')
-        residence_2 = csv_data.get('residence_2', '')
-        residence_3 = csv_data.get('residence_3', '')
-        residence_4 = csv_data.get('residence_4', '')
-        defendant = csv_data.get('defendant', '')
+        email         = csv_data.get('email', '')
+        phone         = csv_data.get('phone', '')
+        residence_1   = csv_data.get('residence_1', '')
+        residence_2   = csv_data.get('residence_2', '')
+        residence_3   = csv_data.get('residence_3', '')
+        residence_4   = csv_data.get('residence_4', '')
+        defendant     = csv_data.get('defendant', '')
 
-        # --- Analysis fields ---
         if 'error' in analysis_result or not analysis_result.get('credit_analysis'):
-            status = 'Failed'
+            status    = 'Failed'
             error_msg = analysis_result.get('error', 'Unknown error')
         else:
-            status = 'Success'
+            status    = 'Success'
             error_msg = ''
 
-        # --- Drive link fields (view + download) ---
         if drive_result.get('success'):
-            pdf_view_link = drive_result.get('pdf_view_link', '')
-            pdf_download_link = drive_result.get('pdf_download_link', '')
-            html_view_link = drive_result.get('html_view_link', '')
+            pdf_view_link      = drive_result.get('pdf_view_link', '')
+            pdf_download_link  = drive_result.get('pdf_download_link', '')
+            html_view_link     = drive_result.get('html_view_link', '')
             html_download_link = drive_result.get('html_download_link', '')
-            loc_view_link = drive_result.get('loc_view_link', '')
-            loc_download_link = drive_result.get('loc_download_link', '')
-            folder_link = drive_result.get('client_folder_link', '')
+            loc_view_link      = drive_result.get('loc_view_link', '')
+            loc_download_link  = drive_result.get('loc_download_link', '')
+            folder_link        = drive_result.get('client_folder_link', '')
 
             pdf_view_cell      = self._hyperlink(pdf_view_link, 'View PDF')
             pdf_download_cell  = self._hyperlink(pdf_download_link, 'Download PDF')
             html_view_cell     = self._hyperlink(html_view_link, 'View HTML')
             html_download_cell = self._hyperlink(html_download_link, 'Download HTML')
-            
-            # LOC uses direct links passed from uploader
+
             if loc_download_link:
-                # It's a specific LOC file with download link
-                loc_view_cell      = self._hyperlink(loc_view_link, 'View LOC')
-                loc_download_cell  = self._hyperlink(loc_download_link, 'Download LOC')
+                loc_view_cell     = self._hyperlink(loc_view_link, 'View LOC')
+                loc_download_cell = self._hyperlink(loc_download_link, 'Download LOC')
             else:
-                # It's a folder link or no download available
-                loc_view_cell      = self._hyperlink(loc_view_link, 'Open LOC Folder')
-                loc_download_cell  = ''
-            
-            folder_cell        = self._hyperlink(folder_link, 'Open Client Folder')
+                loc_view_cell     = self._hyperlink(loc_view_link, 'Open LOC Folder')
+                loc_download_cell = ''
+
+            folder_cell = self._hyperlink(folder_link, 'Open Client Folder')
         else:
             pdf_view_cell = pdf_download_cell = ''
             html_view_cell = html_download_cell = ''
@@ -318,28 +262,13 @@ class GoogleSheetsTracker:
             error_msg = error_msg or drive_result.get('error', 'Upload failed')
 
         return [
-            timestamp,
-            title,
-            first_name,
-            surname,
-            date_of_birth,
-            email,
-            phone,
-            residence_1,
-            residence_2,
-            residence_3,
-            residence_4,
-            defendant,
-            credit_url,
-            status,
-            pdf_view_cell,
-            pdf_download_cell,
-            html_view_cell,
-            html_download_cell,
-            loc_view_cell,
-            loc_download_cell,
-            folder_cell,
-            error_msg,
+            timestamp, title, first_name, surname, date_of_birth,
+            email, phone, residence_1, residence_2, residence_3, residence_4,
+            defendant, credit_url, status,
+            pdf_view_cell, pdf_download_cell,
+            html_view_cell, html_download_cell,
+            loc_view_cell, loc_download_cell,
+            folder_cell, error_msg,
         ]
 
     # ------------------------------------------------------------------
@@ -370,14 +299,6 @@ class GoogleSheetsTracker:
         records: List[Dict[str, Any]],
         sheet_name: str = "Tracker"
     ):
-        """
-        Batch-append multiple records.
-
-        Each record must have:
-            client_name, credit_url, analysis_result, drive_result
-        Optional:
-            csv_row_data (dict with title, first_name, surname, etc.)
-        """
         rows = []
         for record in records:
             row = self._build_row(
