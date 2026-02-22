@@ -30,6 +30,7 @@ from .claim_letters.generator import ClaimLetterGenerator
 from .claim_letters.config import TEMPLATE_PATH  # REMOVED BANK_DETAILS - now dynamic
 from .utils.google_drive_uploader import GoogleDriveUploader
 from .utils.google_sheets_tracker import GoogleSheetsTracker
+from .utils.error_logger import log_failure
 
 # Configure logging
 logging.basicConfig(
@@ -1016,10 +1017,10 @@ async def batch_process_csv(
 
         for html_result in html_results:
             if 'error' in html_result:
-                errors.append({
-                    'client_name': html_result.get('client_name', 'Unknown'),
-                    'error': html_result['error']
-                })
+                client_name = html_result.get('client_name', 'Unknown')
+                error_msg   = html_result['error']
+                errors.append({'client_name': client_name, 'error': error_msg})
+                log_failure(client_name, error_msg, url=html_result.get('url', ''))
                 continue
 
             client_name = html_result.get('client_name', 'Unknown')
@@ -1171,6 +1172,7 @@ async def batch_process_csv(
             except Exception as e:
                 logger.error(f"Processing failed for {client_name}: {e}", exc_info=True)
                 errors.append({'client_name': client_name, 'error': str(e)})
+                log_failure(client_name, str(e), url=url)
                 client_summary[client_name] = {
                     'client_name':        client_name,
                     'client_folder_link': '',
@@ -1187,8 +1189,8 @@ async def batch_process_csv(
 
         # ── Step 6: Build response ─────────────────────────────────
         total      = len(analysis_results)
-        successful = len(tracking_records)
-        failed     = total - successful
+        successful = sum(1 for v in client_summary.values() if v['error'] is None)
+        failed     = len(errors)
 
         sheets_url = None
         if GOOGLE_SHEETS_ID:
