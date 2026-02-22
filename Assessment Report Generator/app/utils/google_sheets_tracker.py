@@ -9,8 +9,8 @@ import json
 import os
 import pickle
 from typing import List, Dict, Any, Optional
-from datetime import datetime
 import google.auth.transport.requests
+from app.utils.date_utils import format_sheets_timestamp
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 import requests as req_lib
@@ -202,6 +202,18 @@ class GoogleSheetsTracker:
             return f'=HYPERLINK("{url}","{label}")'
         return ''
 
+    def _download_link_from_view(self, view_url: str) -> str:
+        """Convert a Google Drive view link to a direct download link."""
+        if not view_url:
+            return ""
+        if "/file/d/" in view_url:
+            try:
+                file_id = view_url.split("/file/d/")[1].split("/")[0]
+                return f"https://drive.google.com/uc?id={file_id}&export=download"
+            except (IndexError, AttributeError):
+                pass
+        return ""
+
     def _build_row(
         self,
         client_name: str,
@@ -210,7 +222,7 @@ class GoogleSheetsTracker:
         drive_result: Dict[str, Any],
         csv_row_data: Optional[Dict[str, Any]] = None,
     ) -> list:
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        timestamp = format_sheets_timestamp()
         csv_data = csv_row_data or {}
 
         title         = csv_data.get('title', '')
