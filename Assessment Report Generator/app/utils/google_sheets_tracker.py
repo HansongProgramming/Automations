@@ -197,23 +197,6 @@ class GoogleSheetsTracker:
             result = chr(65 + r) + result
         return result
 
-    def _hyperlink(self, url: str, label: str) -> str:
-        if url:
-            return f'=HYPERLINK("{url}","{label}")'
-        return ''
-
-    def _download_link_from_view(self, view_url: str) -> str:
-        """Convert a Google Drive view link to a direct download link."""
-        if not view_url:
-            return ""
-        if "/file/d/" in view_url:
-            try:
-                file_id = view_url.split("/file/d/")[1].split("/")[0]
-                return f"https://drive.google.com/uc?id={file_id}&export=download"
-            except (IndexError, AttributeError):
-                pass
-        return ""
-
     def _build_row(
         self,
         client_name: str,
@@ -253,19 +236,13 @@ class GoogleSheetsTracker:
             loc_download_link  = drive_result.get('loc_download_link', '')
             folder_link        = drive_result.get('client_folder_link', '')
 
-            pdf_view_cell      = self._hyperlink(pdf_view_link, 'View PDF')
-            pdf_download_cell  = self._hyperlink(pdf_download_link, 'Download PDF')
-            html_view_cell     = self._hyperlink(html_view_link, 'View HTML')
-            html_download_cell = self._hyperlink(html_download_link, 'Download HTML')
-
-            if loc_download_link:
-                loc_view_cell     = self._hyperlink(loc_view_link, 'View LOC')
-                loc_download_cell = self._hyperlink(loc_download_link, 'Download LOC')
-            else:
-                loc_view_cell     = self._hyperlink(loc_view_link, 'Open LOC Folder')
-                loc_download_cell = ''
-
-            folder_cell = self._hyperlink(folder_link, 'Open Client Folder')
+            pdf_view_cell      = pdf_view_link
+            pdf_download_cell  = pdf_download_link
+            html_view_cell     = html_view_link
+            html_download_cell = html_download_link
+            loc_view_cell      = loc_view_link
+            loc_download_cell  = loc_download_link
+            folder_cell        = folder_link
         else:
             pdf_view_cell = pdf_download_cell = ''
             html_view_cell = html_download_cell = ''
