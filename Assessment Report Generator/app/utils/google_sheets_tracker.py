@@ -41,7 +41,7 @@ class GoogleSheetsTracker:
         'Residence 1',
         'Residence 2',
         'Residence 3',
-        'Residence 4',
+        'Postal Code',
         'Defendant',
         'Credit Report URL',
         'Analysis Status',
@@ -234,7 +234,7 @@ class GoogleSheetsTracker:
         residence_1   = csv_data.get('residence_1', '')
         residence_2   = csv_data.get('residence_2', '')
         residence_3   = csv_data.get('residence_3', '')
-        residence_4   = csv_data.get('residence_4', '')
+        postal_code   = csv_data.get('postal_code', '')
         defendant     = csv_data.get('defendant', '')
 
         if 'error' in analysis_result or not analysis_result.get('credit_analysis'):
@@ -275,7 +275,7 @@ class GoogleSheetsTracker:
 
         return [
             timestamp, title, first_name, surname, date_of_birth,
-            email, phone, residence_1, residence_2, residence_3, residence_4,
+            email, phone, residence_1, residence_2, residence_3, postal_code,
             defendant, credit_url, status,
             pdf_view_cell, pdf_download_cell,
             html_view_cell, html_download_cell,

@@ -965,15 +965,6 @@ async def batch_process_csv(
         for _, row in df.iterrows():
             url = safe_str(row.get('Credit File Link', ''))
             if url:
-                # Build full address with postcode
-                addr1 = safe_str(row.get('Client 1 Residential Address Line 1', ''))
-                addr2 = safe_str(row.get('Client 1 Residential Address Line 2', ''))
-                addr3 = safe_str(row.get('Client 1 Residential Address Line 3', ''))
-                postcode = safe_str(row.get('Client 1 Residential Postcode', ''))
-                
-                # Combine address line 1 with postcode for residence_1
-                residence_1 = f"{addr1} {postcode}".strip() if addr1 else postcode
-                
                 csv_row_by_url[url] = {
                     'title': safe_str(row.get('Client 1 Title', '')),
                     'first_name': safe_str(row.get('Client 1 First Name', '')),
@@ -981,10 +972,10 @@ async def batch_process_csv(
                     'date_of_birth': safe_str(row.get('Client 1 DOB', '')),
                     'email': safe_str(row.get('Client 1 E-mail Address', '')),
                     'phone': safe_str(row.get('Client 1 Phone Number', '')),
-                    'residence_1': residence_1,
-                    'residence_2': addr2,
-                    'residence_3': addr3,
-                    'residence_4': '',  # No 4th address in your CSV
+                    'residence_1': safe_str(row.get('Client 1 Residential Address Line 1', '')),
+                    'residence_2': safe_str(row.get('Client 1 Residential Address Line 2', '')),
+                    'residence_3': safe_str(row.get('Client 1 Residential Address Line 3', '')),
+                    'postal_code': safe_str(row.get('Client 1 Residential Postcode', '')),
                     'defendant': safe_str(row.get('Defendant', '')),
                 }
 
