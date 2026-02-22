@@ -202,6 +202,18 @@ class GoogleSheetsTracker:
             return f'=HYPERLINK("{url}","{label}")'
         return ''
 
+    def _download_link_from_view(self, view_url: str) -> str:
+        """Convert a Google Drive view link to a direct download link."""
+        if not view_url:
+            return ""
+        if "/file/d/" in view_url:
+            try:
+                file_id = view_url.split("/file/d/")[1].split("/")[0]
+                return f"https://drive.google.com/uc?id={file_id}&export=download"
+            except (IndexError, AttributeError):
+                pass
+        return ""
+
     def _build_row(
         self,
         client_name: str,
