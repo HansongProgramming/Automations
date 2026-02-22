@@ -9,8 +9,8 @@ import json
 import os
 import pickle
 from typing import List, Dict, Any, Optional
-from datetime import datetime
 import google.auth.transport.requests
+from app.utils.date_utils import format_sheets_timestamp
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 import requests as req_lib
@@ -222,7 +222,7 @@ class GoogleSheetsTracker:
         drive_result: Dict[str, Any],
         csv_row_data: Optional[Dict[str, Any]] = None,
     ) -> list:
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        timestamp = format_sheets_timestamp()
         csv_data = csv_row_data or {}
 
         title         = csv_data.get('title', '')
