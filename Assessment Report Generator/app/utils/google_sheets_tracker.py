@@ -45,6 +45,7 @@ class GoogleSheetsTracker:
         'Defendant',
         'Credit Report URL',
         'Analysis Status',
+        'Case Status',
         'PDF Report (View)',
         'PDF Report (Download)',
         'HTML Report (View)',
@@ -220,12 +221,17 @@ class GoogleSheetsTracker:
         postal_code   = csv_data.get('postal_code', '')
         defendant     = csv_data.get('defendant', '')
 
+        _CASE_STATUS_LABELS = {'GREEN': 'Strong', 'AMBER': 'Mid', 'RED': 'Weak'}
+
         if 'error' in analysis_result or not analysis_result.get('credit_analysis'):
-            status    = 'Failed'
-            error_msg = analysis_result.get('error', 'Unknown error')
+            status      = 'Failed'
+            case_status = ''
+            error_msg   = analysis_result.get('error', 'Unknown error')
         else:
-            status    = 'Success'
-            error_msg = ''
+            status      = 'Success'
+            error_msg   = ''
+            tl          = analysis_result['credit_analysis'].get('traffic_light', '')
+            case_status = _CASE_STATUS_LABELS.get(tl, tl)
 
         if drive_result.get('success'):
             pdf_view_link      = drive_result.get('pdf_view_link', '')
@@ -253,12 +259,66 @@ class GoogleSheetsTracker:
         return [
             timestamp, title, first_name, surname, date_of_birth,
             email, phone, residence_1, residence_2, residence_3, postal_code,
-            defendant, credit_url, status,
+            defendant, credit_url, status, case_status,
             pdf_view_cell, pdf_download_cell,
             html_view_cell, html_download_cell,
             loc_view_cell, loc_download_cell,
             folder_cell, error_msg,
         ]
+
+    # ------------------------------------------------------------------
+    # Cell colouring
+    # ------------------------------------------------------------------
+
+    _CASE_STATUS_COLORS = {
+        'Strong': {'red': 0.063, 'green': 0.725, 'blue': 0.506},  # #10b981
+        'Mid':    {'red': 0.961, 'green': 0.620, 'blue': 0.043},  # #f59e0b
+        'Weak':   {'red': 0.937, 'green': 0.267, 'blue': 0.267},  # #ef4444
+    }
+
+    def _color_case_status_cells(self, rows: list, updated_range: str, sheet_name: str):
+        """Apply background colour to Case Status cells after a successful append."""
+        import re
+        match = re.search(r'!A(\d+):', updated_range)
+        if not match:
+            return
+
+        start_row = int(match.group(1)) - 1  # Sheets API uses 0-based row indices
+        col_idx   = self.HEADERS.index('Case Status')
+        sheet_id  = self._get_sheet_id(sheet_name)
+        requests  = []
+
+        for i, row in enumerate(rows):
+            if len(row) <= col_idx:
+                continue
+            color = self._CASE_STATUS_COLORS.get(row[col_idx])
+            if not color:
+                continue
+            row_idx = start_row + i
+            requests.append({
+                'repeatCell': {
+                    'range': {
+                        'sheetId':          sheet_id,
+                        'startRowIndex':    row_idx,
+                        'endRowIndex':      row_idx + 1,
+                        'startColumnIndex': col_idx,
+                        'endColumnIndex':   col_idx + 1,
+                    },
+                    'cell': {
+                        'userEnteredFormat': {
+                            'backgroundColor': color,
+                            'textFormat': {
+                                'bold': True,
+                                'foregroundColor': {'red': 1.0, 'green': 1.0, 'blue': 1.0},
+                            },
+                        }
+                    },
+                    'fields': 'userEnteredFormat.backgroundColor,userEnteredFormat.textFormat',
+                }
+            })
+
+        if requests:
+            self._batch_update(requests)
 
     # ------------------------------------------------------------------
     # Public write methods
@@ -273,14 +333,17 @@ class GoogleSheetsTracker:
         csv_row_data: Optional[Dict[str, Any]] = None,
         sheet_name: str = "Tracker"
     ):
+        col = self._col_letter(len(self.HEADERS))
         row = self._build_row(client_name, credit_url, analysis_result, drive_result, csv_row_data)
         resp = req_lib.post(
-            f"{SHEETS_API}/{self.spreadsheet_id}/values/{sheet_name}!A:V:append",
+            f"{SHEETS_API}/{self.spreadsheet_id}/values/{sheet_name}!A:{col}:append",
             headers=self._headers(),
             params={'valueInputOption': 'USER_ENTERED', 'insertDataOption': 'INSERT_ROWS'},
             json={'values': [row]}
         )
         resp.raise_for_status()
+        updated_range = resp.json().get('updates', {}).get('updatedRange', '')
+        self._color_case_status_cells([row], updated_range, sheet_name)
         logger.info(f"Appended row for '{client_name}'")
 
     async def append_multiple_records(
@@ -302,19 +365,22 @@ class GoogleSheetsTracker:
         if not rows:
             return
 
+        col = self._col_letter(len(self.HEADERS))
         resp = req_lib.post(
-            f"{SHEETS_API}/{self.spreadsheet_id}/values/{sheet_name}!A:V:append",
+            f"{SHEETS_API}/{self.spreadsheet_id}/values/{sheet_name}!A:{col}:append",
             headers=self._headers(),
             params={'valueInputOption': 'USER_ENTERED', 'insertDataOption': 'INSERT_ROWS'},
             json={'values': rows}
         )
         resp.raise_for_status()
+        updated_range = resp.json().get('updates', {}).get('updatedRange', '')
+        self._color_case_status_cells(rows, updated_range, sheet_name)
         logger.info(f"Batch-appended {len(rows)} rows to '{sheet_name}'")
 
     async def clear_sheet(self, sheet_name: str = "Tracker", keep_headers: bool = True):
         start_row = 2 if keep_headers else 1
         resp = req_lib.post(
-            f"{SHEETS_API}/{self.spreadsheet_id}/values/{sheet_name}!A{start_row}:V:clear",
+            f"{SHEETS_API}/{self.spreadsheet_id}/values/{sheet_name}!A{start_row}:{self._col_letter(len(self.HEADERS))}:clear",
             headers=self._headers(),
             json={}
         )
