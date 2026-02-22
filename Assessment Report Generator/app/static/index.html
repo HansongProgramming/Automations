@@ -459,6 +459,33 @@
             margin-top: 0.2rem;
         }
 
+        /* ── Review notice ── */
+        .review-notice {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: var(--accent-glow);
+            border: 1px solid rgba(0,212,255,0.25);
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            margin-top: 1rem;
+            color: var(--text);
+            font-size: 0.92rem;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .review-notice-icon { font-size: 1.2rem; flex-shrink: 0; }
+
+        .review-notice-contact {
+            display: flex;
+            gap: 1.5rem;
+            margin-top: 0.4rem;
+            font-family: var(--mono);
+            font-size: 0.78rem;
+            color: var(--muted);
+        }
+
         /* ── Client cards ── */
         .clients-title {
             font-family: var(--mono);
@@ -993,18 +1020,17 @@
             <!-- Summary numbers -->
             <div class="summary-grid" id="summaryGrid"></div>
 
-            <!-- Sheets link -->
-            <div class="sheets-link-bar" id="sheetsLinkBar" style="display:none">
-                <span class="icon">📊</span>
+            <!-- Review notice -->
+            <div class="review-notice" id="reviewNotice" style="display:none">
+                <span class="review-notice-icon">⏳</span>
                 <div>
-                    <a id="sheetsLink" href="#" target="_blank">View Tracking Sheet →</a>
-                    <p>All reports logged with clickable Drive links</p>
+                    <span>Cases are currently under review. Contact us to claim your results.</span>
+                    <p class="review-notice-contact">
+                        <span>E: info@systemizesolutions.co.uk</span>
+                        <span>P: +44 7597 195 645</span>
+                    </p>
                 </div>
             </div>
-
-            <!-- Per-client cards -->
-            <div class="clients-title" id="clientsTitle" style="display:none">Client Drive Folders</div>
-            <div id="clientCards"></div>
 
             <!-- Errors -->
             <div id="errorSection"></div>
@@ -1048,10 +1074,7 @@
     const progressLabel = document.getElementById('progressLabel');
     const resultsSection = document.getElementById('resultsSection');
     const summaryGrid    = document.getElementById('summaryGrid');
-    const sheetsLinkBar  = document.getElementById('sheetsLinkBar');
-    const sheetsLink     = document.getElementById('sheetsLink');
-    const clientsTitle   = document.getElementById('clientsTitle');
-    const clientCards    = document.getElementById('clientCards');
+    const reviewNotice   = document.getElementById('reviewNotice');
     const errorSection   = document.getElementById('errorSection');
 
     let selectedFile = null;
@@ -1160,18 +1183,8 @@
             </div>
         `).join('');
 
-        /* Sheets link */
-        if (result.sheets_url) {
-            sheetsLink.href = result.sheets_url;
-            sheetsLinkBar.style.display = 'flex';
-        }
-
-        /* Per-client Drive links */
-        const clients = result.client_drive_links || [];
-        if (clients.length > 0) {
-            clientsTitle.style.display = 'block';
-            clientCards.innerHTML = clients.map(c => buildClientCard(c)).join('');
-        }
+        /* Review notice */
+        reviewNotice.style.display = 'flex';
 
         /* Errors */
         if (result.errors && result.errors.length > 0) {
@@ -1187,44 +1200,6 @@
         }
 
         resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-
-    /* ── Build one client card ── */
-    function buildClientCard(c) {
-        const links = [
-            { type: 'PDF',    url: c.pdf_link  },
-            { type: 'HTML',   url: c.html_link },
-            { type: 'LOC',    url: c.loc_link  },
-            { type: 'Folder', url: c.client_folder_link },
-        ].filter(l => l.url);
-
-        const badge = c.error
-            ? `<span class="client-badge err">Error</span>`
-            : `<span class="client-badge ok">Uploaded</span>`;
-
-        const rows = links.map(l => `
-            <div class="link-row">
-                <span class="link-type">${l.type}</span>
-                <span class="link-value" title="${l.url}">${l.url}</span>
-                <button class="copy-btn" onclick="copyLink(this, '${escHtml(l.url)}')">Copy</button>
-                <a class="open-btn" href="${escHtml(l.url)}" target="_blank">Open ↗</a>
-            </div>
-        `).join('');
-
-        const errRow = c.error
-            ? `<p style="font-family:var(--mono);font-size:.78rem;color:var(--danger);margin-top:.5rem">${c.error}</p>`
-            : '';
-
-        return `
-            <div class="client-card">
-                <div class="client-card-header">
-                    <div class="client-name">${c.client_name}</div>
-                    ${badge}
-                </div>
-                ${rows}
-                ${errRow}
-            </div>
-        `;
     }
 
     /* ── Copy helper ── */
