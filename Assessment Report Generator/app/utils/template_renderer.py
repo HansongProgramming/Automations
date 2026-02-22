@@ -123,6 +123,16 @@ class HTMLTemplateRenderer:
             color: white;
         }
 
+        .status-amber {
+            background-color: #f59e0b;
+            color: white;
+        }
+
+        .status-red {
+            background-color: #ef4444;
+            color: white;
+        }
+
         .card {
             background: #1e293b;
             border-radius: 0.6rem;
@@ -347,7 +357,7 @@ class HTMLTemplateRenderer:
             </div>
         </div>
 
-        <div class="status-badge status-strong">
+        <div class="status-badge {% if traffic_light == 'GREEN' %}status-strong{% elif traffic_light == 'AMBER' %}status-amber{% elif traffic_light == 'RED' %}status-red{% else %}status-strong{% endif %}">
             {% if traffic_light == 'GREEN' %}STRONG{% elif traffic_light == 'AMBER' %}MEDIUM{% elif traffic_light == 'RED' %}WEAK{% else %}{{ traffic_light }}{% endif %} CASE
         </div>
 
