@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from docx import Document
 from docx.shared import Inches
+from docx.oxml.ns import qn
 from typing import List, Dict, Any, Optional
 import argparse
 import re
@@ -505,16 +506,22 @@ class ClaimLetterGenerator:
                     next_para = doc.paragraphs[i]
                     next_text = next_para.text.strip()
                     
+                    # Stop if we hit an auto-numbered list paragraph — never remove these
+                    # (they are the main section headings numbered by Word automatically)
+                    pPr = next_para._p.find(qn('w:pPr'))
+                    if pPr is not None and pPr.find(qn('w:numPr')) is not None:
+                        break
+
                     # Stop if we hit another section marker (XX.Y format)
                     # Like "22.1", "22.2", "23.1", etc.
                     if re.match(r'^\d{2}\.\d+\s', next_text):
                         break
-                    
+
                     # Stop if we hit a major section marker (XX. format)
                     # Like "20.", "21.", "22.", "23." (but not subsections)
                     if re.match(r'^\d{2}\.\s+[A-Z]', next_text):
                         break
-                    
+
                     # Stop at empty paragraphs that might indicate section end
                     if not next_text:
                         # Look ahead - if next non-empty is a section, stop here
