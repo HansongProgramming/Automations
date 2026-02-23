@@ -766,9 +766,13 @@ class ClaimLetterGenerator:
 
             # Apply company branding
             if branding:
-                footer_msg = branding.get('footer_message', '')
-                if footer_msg:
-                    self.replace_placeholders(doc, {'{Footer Message}': footer_msg})
+                branding_replacements = {}
+                if branding.get('footer_message'):
+                    branding_replacements['{Footer Message}'] = branding['footer_message']
+                if branding.get('name'):
+                    branding_replacements['{Company Name}'] = branding['name']
+                if branding_replacements:
+                    self.replace_placeholders(doc, branding_replacements)
                 logo_path = branding.get('logo_path', '')
                 if logo_path and os.path.exists(logo_path):
                     self._inject_logo(doc, logo_path)
