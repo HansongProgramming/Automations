@@ -9,6 +9,7 @@ import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 from docx import Document
+from docx.shared import Inches
 from typing import List, Dict, Any, Optional
 import argparse
 import re
@@ -610,6 +611,30 @@ class ClaimLetterGenerator:
                     replaced = True
         return replaced
     
+    def _inject_logo(self, doc: Document, logo_path: str, width_inches: float = 2.0):
+        """Replace the {Company Logo} placeholder with the company logo image.
+
+        Searches body paragraphs then header/footer areas.  The first paragraph
+        containing the placeholder is cleared and an inline picture is inserted.
+        """
+        target = '{Company Logo}'
+
+        def _try_paragraphs(paragraphs):
+            for para in paragraphs:
+                if target in para.text:
+                    para.clear()
+                    para.add_run().add_picture(logo_path, width=Inches(width_inches))
+                    return True
+            return False
+
+        if _try_paragraphs(doc.paragraphs):
+            return
+        for section in doc.sections:
+            for zone in [section.header, section.first_page_header,
+                         section.footer, section.first_page_footer]:
+                if zone and _try_paragraphs(zone.paragraphs):
+                    return
+
     def replace_placeholders(self, doc: Document, replacements: Dict[str, str]):
         """
         Replace all placeholders in the document.
@@ -643,8 +668,9 @@ class ClaimLetterGenerator:
                         for table in footer.tables:
                             self.replace_text_in_table(table, search_text, replace_str)
     
-    def generate_letter(self, output_path: str, credit_data: Dict[str, Any], 
-                       in_scope_item: Dict[str, Any], debug: bool = False) -> bool:
+    def generate_letter(self, output_path: str, credit_data: Dict[str, Any],
+                       in_scope_item: Dict[str, Any], debug: bool = False,
+                       branding: Optional[Dict[str, Any]] = None) -> bool:
         """
         Generate a single letter of claim.
         
@@ -737,7 +763,20 @@ class ClaimLetterGenerator:
             
             # Replace all placeholders
             self.replace_placeholders(doc, replacements)
-            
+
+            # Apply company branding
+            if branding:
+                branding_replacements = {}
+                if branding.get('footer_message'):
+                    branding_replacements['{Footer Message}'] = branding['footer_message']
+                if branding.get('name'):
+                    branding_replacements['{Company Name}'] = branding['name']
+                if branding_replacements:
+                    self.replace_placeholders(doc, branding_replacements)
+                logo_path = branding.get('logo_path', '')
+                if logo_path and os.path.exists(logo_path):
+                    self._inject_logo(doc, logo_path)
+
             # Save document
             doc.save(output_path)
             return True

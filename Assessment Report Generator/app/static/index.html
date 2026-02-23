@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Affordability Assessment Report Generator</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -22,7 +22,7 @@
             --danger:    #ff4d6d;
             --warn:      #ffb347;
             --mono:      'DM Mono', monospace;
-            --display:   'Syne', sans-serif;
+            --display:   'Calibri', sans-serif;
         }
 
         body {
@@ -66,6 +66,10 @@
             letter-spacing: 0.15em;
             color: var(--accent);
             text-transform: uppercase;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .header-tag {
@@ -322,9 +326,24 @@
             transition: border-color 0.2s;
         }
 
-        .field input:focus {
+        .field input:focus,
+        .field textarea:focus {
             outline: none;
             border-color: var(--accent-dim);
+        }
+
+        .field textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-family: var(--mono);
+            font-size: 0.9rem;
+            transition: border-color 0.2s;
+            resize: vertical;
+            line-height: 1.6;
         }
 
         /* ── Button ── */
@@ -358,36 +377,88 @@
             box-shadow: none;
         }
 
-        /* ── Progress ── */
-        .progress-wrap {
+        /* ── Loading Overlay ── */
+        .loading-overlay {
             display: none;
-            margin-top: 1.5rem;
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            background: rgba(0, 0, 0, 0.78);
+            backdrop-filter: blur(5px);
+            align-items: center;
+            justify-content: center;
         }
 
-        .progress-wrap.show { display: block; }
+        .loading-overlay.show { display: flex; }
 
-        .progress-track {
-            height: 4px;
-            background: var(--border);
-            border-radius: 2px;
-            overflow: hidden;
-            margin-bottom: 0.75rem;
+        .loading-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2.5rem 3rem;
+            text-align: center;
+            max-width: 420px;
+            width: 90%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
         }
 
-        .progress-bar {
-            height: 100%;
-            background: var(--accent);
-            border-radius: 2px;
-            width: 0%;
-            transition: width 0.4s ease;
-            box-shadow: 0 0 10px var(--accent);
+        /* Dual-ring spinner */
+        .spinner-ring {
+            position: relative;
+            width: 72px;
+            height: 72px;
         }
 
-        .progress-label {
+        .spinner-ring::before,
+        .spinner-ring::after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            border: 4px solid transparent;
+        }
+
+        .spinner-ring::before {
+            inset: 0;
+            border-top-color: var(--accent);
+            animation: spin 0.9s linear infinite;
+        }
+
+        .spinner-ring::after {
+            inset: 12px;
+            border-top-color: var(--accent);
+            opacity: 0.4;
+            animation: spin 1.4s linear infinite reverse;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-family: var(--mono);
+            font-size: 0.9rem;
+            color: var(--fg);
+            margin-bottom: 0.3rem;
+        }
+
+        .loading-pct {
             font-family: var(--mono);
             font-size: 0.78rem;
             color: var(--muted);
-            text-align: center;
+        }
+
+        .loading-warn {
+            font-family: var(--mono);
+            font-size: 0.72rem;
+            color: #f59e0b;
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.28);
+            border-radius: 6px;
+            padding: 0.55rem 0.85rem;
+            line-height: 1.55;
         }
 
         /* ── Results ── */
@@ -476,6 +547,93 @@
         }
 
         .review-notice-icon { font-size: 1.2rem; flex-shrink: 0; }
+
+        /* ── Branding modal ── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.65);
+            backdrop-filter: blur(6px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active { display: flex; }
+
+        .modal-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem 2.25rem;
+            width: min(500px, 92vw);
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+        }
+
+        .modal-title {
+            font-family: var(--display);
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 0.35rem;
+        }
+
+        .modal-subtitle {
+            font-family: var(--mono);
+            font-size: 0.76rem;
+            color: var(--muted);
+            margin-bottom: 1.75rem;
+        }
+
+        .field-hint {
+            font-family: var(--mono);
+            font-size: 0.72rem;
+            color: var(--muted);
+            font-weight: 400;
+        }
+
+        .modal-lookup-msg {
+            display: block;
+            font-family: var(--mono);
+            font-size: 0.74rem;
+            margin-top: 0.3rem;
+            min-height: 1em;
+        }
+
+        .modal-lookup-msg.found { color: var(--accent); }
+        .modal-lookup-msg.new   { color: var(--muted); }
+
+        .logo-preview {
+            display: none;
+            max-height: 64px;
+            max-width: 220px;
+            margin-top: 0.6rem;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            padding: 4px;
+            background: var(--surface2);
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+            margin-top: 1.75rem;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--muted);
+        }
+
+        .btn-ghost:hover {
+            border-color: var(--accent-dim);
+            color: var(--text);
+        }
 
         .review-notice-contact {
             display: flex;
@@ -878,13 +1036,89 @@
             .landing-hero h1 { font-size: 2.2rem; }
             .how-it-works { padding: 3rem 1.5rem; }
         }
+
+        /* ── Footer Blue Theme ── */
+        .footer {
+            position: relative;
+            background: linear-gradient(180deg, #0a1628 0%, #081220 100%);
+            border-top: 1px solid rgba(0, 180, 216, 0.15);
+            padding: 4rem 2.5rem 2rem;
+            margin-top: 4rem;
+        }
+
+        .footer::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(0,180,216,0.5), transparent);
+        }
+
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1.5fr;
+            gap: 3rem;
+        }
+
+        .footer-brand h3 {
+            font-family: var(--display);
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #00d4ff;
+            margin-bottom: 1rem;
+            letter-spacing: 0.02em;
+        }
+
+        .footer-brand p { font-size: 0.9rem; color: #8b9dc3; line-height: 1.7; max-width: 320px; }
+
+        .footer-section h4 {
+            font-family: var(--mono);
+            font-size: 0.75rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: #00d4ff;
+            margin-bottom: 1.25rem;
+        }
+
+        .footer-section ul { list-style: none; }
+        .footer-section li { margin-bottom: 0.75rem; }
+
+        .footer-section a { font-size: 0.9rem; color: #8b9dc3; text-decoration: none; transition: color 0.2s; }
+        .footer-section a:hover { color: #00d4ff; }
+
+        .footer-contact p { font-size: 0.85rem; color: #8b9dc3; margin-bottom: 0.6rem; line-height: 1.6; }
+        .footer-contact a { color: #8b9dc3; text-decoration: none; transition: color 0.2s; }
+        .footer-contact a:hover { color: #00d4ff; }
+        .footer-contact span { color: #5a7199; font-family: var(--mono); font-size: 0.8rem; }
+
+        .footer-bottom {
+            max-width: 1200px;
+            margin: 3rem auto 0;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(0,180,216,0.1);
+            text-align: center;
+        }
+
+        .footer-bottom p { font-family: var(--mono); font-size: 0.75rem; color: #5a7199; line-height: 1.8; }
+
+        @media (max-width: 900px) {
+            .footer-container { grid-template-columns: 1fr 1fr; gap: 2rem; }
+            .footer-brand { grid-column: 1 / -1; }
+        }
+
+        @media (max-width: 600px) {
+            .footer-container { grid-template-columns: 1fr; gap: 2rem; text-align: center; }
+            .footer-brand p { max-width: none; }
+        }
     </style>
 </head>
 <body>
 
 <!-- ── Header ── -->
 <header>
-    <div class="logo">Systemize</div>
+    <div class="logo"><img src="/static/uploads/logos/Main Logo.png" alt="Systemize Solutions" style="height:36px;width:auto;display:block;"> Systemize</div>
     <div class="header-tag">Affordability Assessment Report Generator</div>
 </header>
 
@@ -928,8 +1162,8 @@
             <div class="step">
                 <div class="step-num">1</div>
                 <div class="step-content">
-                    <h4>Submit Links</h4>
-                    <p>Paste Credit Report links into our system.</p>
+                    <h4>Submit CSV</h4>
+                    <p>Upload Credit Report into our system.</p>
                 </div>
             </div>
             <div class="step">
@@ -998,19 +1232,8 @@
             <div class="file-pill" id="filePill"></div>
         </div>
 
-        <div class="field">
-            <label for="sheetName">Google Sheets tab name</label>
-            <input type="text" id="sheetName" value="Tracker" placeholder="Tracker">
-        </div>
-
         <button class="btn" id="submitBtn" disabled>Process CSV &amp; Upload to Drive</button>
 
-        <div class="progress-wrap" id="progressWrap">
-            <div class="progress-track">
-                <div class="progress-bar" id="progressBar"></div>
-            </div>
-            <div class="progress-label" id="progressLabel">Processing…</div>
-        </div>
     </div>
 
     <!-- Results -->
@@ -1039,6 +1262,47 @@
 
 </main>
 
+<!-- ── Branding modal (body-level so it sits above all stacking contexts) ── -->
+<div class="modal-overlay" id="brandingModal">
+    <div class="modal-card">
+        <h2 class="modal-title">Company Branding</h2>
+        <p class="modal-subtitle">Your logo and footer will be applied to every generated Letter of Claim.</p>
+
+        <div class="field">
+            <label for="modalCompanyName">Company Name</label>
+            <input type="text" id="modalCompanyName" placeholder="e.g. Acme Solutions Ltd" autocomplete="organization">
+            <span class="modal-lookup-msg" id="lookupMsg"></span>
+        </div>
+
+        <div class="field">
+            <label for="modalLogo">Header Logo <span class="field-hint">(PNG / JPG / SVG)</span></label>
+            <input type="file" id="modalLogo" accept="image/*">
+            <img id="logoPreview" class="logo-preview" src="" alt="Logo preview">
+        </div>
+
+        <div class="field">
+            <label for="modalFooter">Footer Message</label>
+            <textarea id="modalFooter" rows="3" placeholder="e.g. Acme Solutions Ltd · Registered in England · Co. No. 12345678"></textarea>
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn btn-ghost" id="modalCancelBtn">Cancel</button>
+            <button class="btn" id="modalProcessBtn">Save &amp; Process</button>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-card">
+        <div class="spinner-ring"></div>
+        <div>
+            <div class="loading-text" id="loadingLabel">Processing…</div>
+            <div class="loading-pct"  id="loadingPct">0%</div>
+        </div>
+        <div class="loading-warn">&#9888; Do not close this tab — the automation is still running.</div>
+    </div>
+</div>
 
 <script>
     /* ── Elements ── */
@@ -1046,10 +1310,17 @@
     const fileInput  = document.getElementById('fileInput');
     const filePill   = document.getElementById('filePill');
     const submitBtn  = document.getElementById('submitBtn');
-    const sheetName  = document.getElementById('sheetName');
-    const progressWrap  = document.getElementById('progressWrap');
-    const progressBar   = document.getElementById('progressBar');
-    const progressLabel = document.getElementById('progressLabel');
+    const brandingModal     = document.getElementById('brandingModal');
+    const modalCompanyName  = document.getElementById('modalCompanyName');
+    const modalLogo         = document.getElementById('modalLogo');
+    const logoPreview       = document.getElementById('logoPreview');
+    const modalFooter       = document.getElementById('modalFooter');
+    const lookupMsg         = document.getElementById('lookupMsg');
+    const modalCancelBtn    = document.getElementById('modalCancelBtn');
+    const modalProcessBtn   = document.getElementById('modalProcessBtn');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const loadingLabel   = document.getElementById('loadingLabel');
+    const loadingPct     = document.getElementById('loadingPct');
     const resultsSection = document.getElementById('resultsSection');
     const summaryGrid    = document.getElementById('summaryGrid');
     const reviewNotice   = document.getElementById('reviewNotice');
@@ -1087,33 +1358,132 @@
         filePill.classList.add('show');
         dropZone.classList.add('has-file');
         submitBtn.disabled = false;
+        openBrandingModal();
     }
 
-    /* ── Progress helpers ── */
+    /* ── Loading overlay helpers ── */
     function setProgress(pct, label) {
-        progressBar.style.width = pct + '%';
-        progressLabel.textContent = label;
+        loadingLabel.textContent = label;
+        loadingPct.textContent   = pct + '%';
+        if (pct >= 100) playCompletionSound();
     }
 
-    /* ── Submit ── */
-    submitBtn.addEventListener('click', async () => {
-        if (!selectedFile) return;
+    function playCompletionSound() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            [[523.25, 0], [659.25, 0.18], [783.99, 0.36]].forEach(([freq, t]) => {
+                const osc  = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.3, ctx.currentTime + t);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.55);
+                osc.start(ctx.currentTime + t);
+                osc.stop(ctx.currentTime + t + 0.6);
+            });
+        } catch (e) { /* audio unavailable */ }
+    }
 
-        resultsSection.classList.remove('show');
-        progressWrap.classList.add('show');
-        setProgress(15, 'Uploading CSV…');
+    /* ── Submit (opens modal instead of processing directly) ── */
+    submitBtn.addEventListener('click', () => {
+        if (!selectedFile) return;
+        openBrandingModal();
+    });
+
+    /* ── Branding modal ── */
+    function openBrandingModal() {
+        brandingModal.classList.add('active');
+        modalCompanyName.focus();
+    }
+
+    function closeBrandingModal() {
+        brandingModal.classList.remove('active');
+    }
+
+    modalCancelBtn.addEventListener('click', () => {
+        closeBrandingModal();
+        selectedFile = null;
+        filePill.textContent = '';
+        filePill.classList.remove('show');
+        dropZone.classList.remove('has-file');
         submitBtn.disabled = true;
+        fileInput.value = '';
+    });
+
+    /* Company name lookup — fetch existing config on blur */
+    modalCompanyName.addEventListener('blur', async () => {
+        const name = modalCompanyName.value.trim();
+        if (!name) { lookupMsg.textContent = ''; lookupMsg.className = 'modal-lookup-msg'; return; }
 
         try {
+            const r = await fetch(`/company/${encodeURIComponent(name)}`);
+            if (r.ok) {
+                const cfg = await r.json();
+                lookupMsg.textContent = '✓ Returning company — existing branding pre-loaded.';
+                lookupMsg.className = 'modal-lookup-msg found';
+                if (cfg.footer_message) modalFooter.value = cfg.footer_message;
+                if (cfg.logo_url) {
+                    logoPreview.src = cfg.logo_url;
+                    logoPreview.style.display = 'block';
+                }
+            } else {
+                lookupMsg.textContent = 'New company — fill in your branding below.';
+                lookupMsg.className = 'modal-lookup-msg new';
+            }
+        } catch (_) { /* network error — ignore */ }
+    });
+
+    /* Logo file preview */
+    modalLogo.addEventListener('change', () => {
+        const f = modalLogo.files[0];
+        if (f) {
+            logoPreview.src = URL.createObjectURL(f);
+            logoPreview.style.display = 'block';
+        }
+    });
+
+    /* Save branding then run batch process */
+    modalProcessBtn.addEventListener('click', async () => {
+        const companyName = modalCompanyName.value.trim();
+        if (!companyName) {
+            modalCompanyName.focus();
+            lookupMsg.textContent = 'Company name is required.';
+            lookupMsg.className = 'modal-lookup-msg new';
+            return;
+        }
+
+        modalProcessBtn.disabled = true;
+        modalProcessBtn.textContent = 'Saving…';
+
+        try {
+            /* 1 — Save branding config */
+            const configData = new FormData();
+            configData.append('company_name', companyName);
+            configData.append('footer_message', modalFooter.value.trim());
+            if (modalLogo.files[0]) configData.append('logo', modalLogo.files[0]);
+
+            const cfgResp = await fetch('/company/config', { method: 'POST', body: configData });
+            if (!cfgResp.ok) {
+                const e = await cfgResp.json();
+                throw new Error(e.detail || 'Failed to save company config');
+            }
+
+            /* 2 — Close modal, start batch process */
+            closeBrandingModal();
+            loadingOverlay.classList.add('show');
+            setProgress(15, 'Uploading CSV…');
+            submitBtn.disabled = true;
+
             const formData = new FormData();
             formData.append('file', selectedFile);
-            const tab = sheetName.value.trim() || 'Tracker';
 
             setProgress(30, 'Analysing credit reports…');
 
-            const resp = await fetch(`/batch-process-csv?sheet_name=${encodeURIComponent(tab)}`, {
+            const resp = await fetch(`/batch-process-csv?company_name=${encodeURIComponent(companyName)}`, {
                 method: 'POST',
-                body: formData
+                body: formData,
             });
 
             setProgress(80, 'Uploading to Google Drive…');
@@ -1127,16 +1497,18 @@
             setProgress(100, 'Done!');
 
             setTimeout(() => {
-                progressWrap.classList.remove('show');
+                loadingOverlay.classList.remove('show');
                 setProgress(0, '');
                 renderResults(result);
-            }, 600);
+            }, 800);
 
         } catch (err) {
-            progressWrap.classList.remove('show');
+            loadingOverlay.classList.remove('show');
             setProgress(0, '');
             alert(`Error: ${err.message}`);
         } finally {
+            modalProcessBtn.disabled = false;
+            modalProcessBtn.textContent = 'Save & Process';
             submitBtn.disabled = false;
         }
     });
@@ -1197,140 +1569,6 @@
     }
 </script>
 
-<style>
-    /* ── Footer Blue Theme ── */
-    .footer {
-        position: relative;
-        z-index: 1;
-        background: linear-gradient(180deg, #0a1628 0%, #081220 100%);
-        border-top: 1px solid rgba(0, 180, 216, 0.15);
-        padding: 4rem 2.5rem 2rem;
-        margin-top: 4rem;
-    }
-
-    .footer::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 1px;
-        background: linear-gradient(90deg, transparent, rgba(0, 180, 216, 0.5), transparent);
-    }
-
-    .footer-container {
-        max-width: 1200px;
-        margin: 0 auto;
-        display: grid;
-        grid-template-columns: 2fr 1fr 1fr 1.5fr;
-        gap: 3rem;
-    }
-
-    .footer-brand h3 {
-        font-family: var(--display);
-        font-size: 1.4rem;
-        font-weight: 700;
-        color: #00d4ff;
-        margin-bottom: 1rem;
-        letter-spacing: 0.02em;
-    }
-
-    .footer-brand p {
-        font-size: 0.9rem;
-        color: #8b9dc3;
-        line-height: 1.7;
-        max-width: 320px;
-    }
-
-    .footer-section h4 {
-        font-family: var(--mono);
-        font-size: 0.75rem;
-        letter-spacing: 0.15em;
-        text-transform: uppercase;
-        color: #00d4ff;
-        margin-bottom: 1.25rem;
-    }
-
-    .footer-section ul {
-        list-style: none;
-    }
-
-    .footer-section li {
-        margin-bottom: 0.75rem;
-    }
-
-    .footer-section a {
-        font-size: 0.9rem;
-        color: #8b9dc3;
-        text-decoration: none;
-        transition: color 0.2s ease;
-    }
-
-    .footer-section a:hover {
-        color: #00d4ff;
-    }
-
-    .footer-contact p {
-        font-size: 0.85rem;
-        color: #8b9dc3;
-        margin-bottom: 0.6rem;
-        line-height: 1.6;
-    }
-
-    .footer-contact a {
-        color: #8b9dc3;
-        text-decoration: none;
-        transition: color 0.2s ease;
-    }
-
-    .footer-contact a:hover {
-        color: #00d4ff;
-    }
-
-    .footer-contact span {
-        color: #5a7199;
-        font-family: var(--mono);
-        font-size: 0.8rem;
-    }
-
-    .footer-bottom {
-        max-width: 1200px;
-        margin: 3rem auto 0;
-        padding-top: 1.5rem;
-        border-top: 1px solid rgba(0, 180, 216, 0.1);
-        text-align: center;
-    }
-
-    .footer-bottom p {
-        font-family: var(--mono);
-        font-size: 0.75rem;
-        color: #5a7199;
-        line-height: 1.8;
-    }
-
-    /* Responsive footer */
-    @media (max-width: 900px) {
-        .footer-container {
-            grid-template-columns: 1fr 1fr;
-            gap: 2rem;
-        }
-        .footer-brand {
-            grid-column: 1 / -1;
-        }
-    }
-
-    @media (max-width: 600px) {
-        .footer-container {
-            grid-template-columns: 1fr;
-            gap: 2rem;
-            text-align: center;
-        }
-        .footer-brand p {
-            max-width: none;
-        }
-    }
-</style>
-
 <footer class="footer">
     <div class="footer-container">
         <div class="footer-brand">
@@ -1365,6 +1603,7 @@
         <p>© 2026 Systemize Solutions Ltd. All rights reserved.<br>Registered in England and Wales. Company No. 15608791</p>
     </div>
 </footer>
+
 
 </body>
 </html>

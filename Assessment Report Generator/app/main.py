@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response, StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -31,6 +31,7 @@ from .claim_letters.config import TEMPLATE_PATH  # REMOVED BANK_DETAILS - now dy
 from .utils.google_drive_uploader import GoogleDriveUploader
 from .utils.google_sheets_tracker import GoogleSheetsTracker
 from .utils.error_logger import log_failure
+from .utils.company_store import get_company, save_company, LOGO_DIR
 
 # Configure logging
 logging.basicConfig(
@@ -122,6 +123,9 @@ def get_sheets_tracker():
 static_dir = Path(__file__).parent / "static"
 if static_dir.exists():
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
+# Ensure logo upload directory exists on startup
+os.makedirs(LOGO_DIR, exist_ok=True)
 
 
 async def analyze_single_report(url: str, html_content: str) -> Dict[str, Any]:
@@ -884,10 +888,47 @@ async def analyze_pdf_and_letters(request: AnalyzeRequest):
         )
 
 
+# ── Company branding endpoints ─────────────────────────────────────────────
+
+@app.get("/company/{company_name}")
+async def lookup_company(company_name: str):
+    """Return stored branding config for a company, or 404 if unknown."""
+    config = get_company(company_name)
+    if not config:
+        raise HTTPException(status_code=404, detail="Company not found")
+    # Expose logo as a web-accessible URL instead of an absolute path
+    if config.get('logo_path') and os.path.exists(config['logo_path']):
+        rel = os.path.relpath(config['logo_path'], str(Path(__file__).parent / 'static'))
+        config = {**config, 'logo_url': '/static/' + rel.replace(os.sep, '/')}
+    return config
+
+
+@app.post("/company/config")
+async def upsert_company(
+    company_name:    str           = Form(...),
+    footer_message:  str           = Form(''),
+    logo:            UploadFile    = File(None),
+):
+    """Save or update company branding. Uploaded logo is stored locally."""
+    logo_path = ''
+    if logo and logo.filename:
+        os.makedirs(LOGO_DIR, exist_ok=True)
+        ext       = os.path.splitext(logo.filename)[1].lower() or '.png'
+        slug      = ''.join(c if c.isalnum() else '_' for c in company_name.lower())
+        logo_path = os.path.join(LOGO_DIR, f"{slug}{ext}")
+        with open(logo_path, 'wb') as fh:
+            fh.write(await logo.read())
+        logger.info(f"Saved logo for '{company_name}' → {logo_path}")
+
+    config = save_company(company_name, footer_message=footer_message, logo_path=logo_path)
+    logger.info(f"Upserted company config: {company_name}")
+    return config
+
+
 @app.post("/batch-process-csv", response_model=CSVBatchProcessResult)
 async def batch_process_csv(
-    file: UploadFile = File(...),
-    sheet_name: str = "Tracker"
+    file:         UploadFile = File(...),
+    company_name: str        = "Tracker",
 ):
     """
     Process a CSV file containing credit report links.
@@ -931,8 +972,11 @@ async def batch_process_csv(
         ]
     }
     """
+    sheet_name = company_name
+    branding   = get_company(company_name)  # None when company not found / no branding
+
     logger.info("=" * 60)
-    logger.info(f"CSV batch processing started: {file.filename}")
+    logger.info(f"CSV batch processing started: {file.filename} | company: {company_name}")
     logger.info("=" * 60)
 
     try:
@@ -1089,7 +1133,8 @@ async def batch_process_csv(
                             tmp_path = tmp.name
                         try:
                             success = claim_letter_generator.generate_letter(
-                                tmp_path, analysis_result, lender, debug=False
+                                tmp_path, analysis_result, lender, debug=False,
+                                branding=branding,
                             )
                             if success:
                                 with open(tmp_path, 'rb') as f:
