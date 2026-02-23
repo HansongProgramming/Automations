@@ -377,36 +377,88 @@
             box-shadow: none;
         }
 
-        /* ── Progress ── */
-        .progress-wrap {
+        /* ── Loading Overlay ── */
+        .loading-overlay {
             display: none;
-            margin-top: 1.5rem;
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            background: rgba(0, 0, 0, 0.78);
+            backdrop-filter: blur(5px);
+            align-items: center;
+            justify-content: center;
         }
 
-        .progress-wrap.show { display: block; }
+        .loading-overlay.show { display: flex; }
 
-        .progress-track {
-            height: 4px;
-            background: var(--border);
-            border-radius: 2px;
-            overflow: hidden;
-            margin-bottom: 0.75rem;
+        .loading-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2.5rem 3rem;
+            text-align: center;
+            max-width: 420px;
+            width: 90%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
         }
 
-        .progress-bar {
-            height: 100%;
-            background: var(--accent);
-            border-radius: 2px;
-            width: 0%;
-            transition: width 0.4s ease;
-            box-shadow: 0 0 10px var(--accent);
+        /* Dual-ring spinner */
+        .spinner-ring {
+            position: relative;
+            width: 72px;
+            height: 72px;
         }
 
-        .progress-label {
+        .spinner-ring::before,
+        .spinner-ring::after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            border: 4px solid transparent;
+        }
+
+        .spinner-ring::before {
+            inset: 0;
+            border-top-color: var(--accent);
+            animation: spin 0.9s linear infinite;
+        }
+
+        .spinner-ring::after {
+            inset: 12px;
+            border-top-color: var(--accent);
+            opacity: 0.4;
+            animation: spin 1.4s linear infinite reverse;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-family: var(--mono);
+            font-size: 0.9rem;
+            color: var(--fg);
+            margin-bottom: 0.3rem;
+        }
+
+        .loading-pct {
             font-family: var(--mono);
             font-size: 0.78rem;
             color: var(--muted);
-            text-align: center;
+        }
+
+        .loading-warn {
+            font-family: var(--mono);
+            font-size: 0.72rem;
+            color: #f59e0b;
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.28);
+            border-radius: 6px;
+            padding: 0.55rem 0.85rem;
+            line-height: 1.55;
         }
 
         /* ── Results ── */
@@ -1182,12 +1234,6 @@
 
         <button class="btn" id="submitBtn" disabled>Process CSV &amp; Upload to Drive</button>
 
-        <div class="progress-wrap" id="progressWrap">
-            <div class="progress-track">
-                <div class="progress-bar" id="progressBar"></div>
-            </div>
-            <div class="progress-label" id="progressLabel">Processing…</div>
-        </div>
     </div>
 
     <!-- Results -->
@@ -1246,6 +1292,17 @@
     </div>
 </div>
 
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-card">
+        <div class="spinner-ring"></div>
+        <div>
+            <div class="loading-text" id="loadingLabel">Processing…</div>
+            <div class="loading-pct"  id="loadingPct">0%</div>
+        </div>
+        <div class="loading-warn">&#9888; Do not close this tab — the automation is still running.</div>
+    </div>
+</div>
 
 <script>
     /* ── Elements ── */
@@ -1261,9 +1318,9 @@
     const lookupMsg         = document.getElementById('lookupMsg');
     const modalCancelBtn    = document.getElementById('modalCancelBtn');
     const modalProcessBtn   = document.getElementById('modalProcessBtn');
-    const progressWrap  = document.getElementById('progressWrap');
-    const progressBar   = document.getElementById('progressBar');
-    const progressLabel = document.getElementById('progressLabel');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const loadingLabel   = document.getElementById('loadingLabel');
+    const loadingPct     = document.getElementById('loadingPct');
     const resultsSection = document.getElementById('resultsSection');
     const summaryGrid    = document.getElementById('summaryGrid');
     const reviewNotice   = document.getElementById('reviewNotice');
@@ -1304,10 +1361,29 @@
         openBrandingModal();
     }
 
-    /* ── Progress helpers ── */
+    /* ── Loading overlay helpers ── */
     function setProgress(pct, label) {
-        progressBar.style.width = pct + '%';
-        progressLabel.textContent = label;
+        loadingLabel.textContent = label;
+        loadingPct.textContent   = pct + '%';
+        if (pct >= 100) playCompletionSound();
+    }
+
+    function playCompletionSound() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            [[523.25, 0], [659.25, 0.18], [783.99, 0.36]].forEach(([freq, t]) => {
+                const osc  = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.3, ctx.currentTime + t);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.55);
+                osc.start(ctx.currentTime + t);
+                osc.stop(ctx.currentTime + t + 0.6);
+            });
+        } catch (e) { /* audio unavailable */ }
     }
 
     /* ── Submit (opens modal instead of processing directly) ── */
@@ -1396,7 +1472,7 @@
 
             /* 2 — Close modal, start batch process */
             closeBrandingModal();
-            progressWrap.classList.add('show');
+            loadingOverlay.classList.add('show');
             setProgress(15, 'Uploading CSV…');
             submitBtn.disabled = true;
 
@@ -1421,13 +1497,13 @@
             setProgress(100, 'Done!');
 
             setTimeout(() => {
-                progressWrap.classList.remove('show');
+                loadingOverlay.classList.remove('show');
                 setProgress(0, '');
                 renderResults(result);
-            }, 600);
+            }, 800);
 
         } catch (err) {
-            progressWrap.classList.remove('show');
+            loadingOverlay.classList.remove('show');
             setProgress(0, '');
             alert(`Error: ${err.message}`);
         } finally {
@@ -1527,6 +1603,7 @@
         <p>© 2026 Systemize Solutions Ltd. All rights reserved.<br>Registered in England and Wales. Company No. 15608791</p>
     </div>
 </footer>
+
 
 </body>
 </html>
