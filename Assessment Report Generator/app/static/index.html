@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Affordability Assessment Report Generator</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -22,7 +22,7 @@
             --danger:    #ff4d6d;
             --warn:      #ffb347;
             --mono:      'DM Mono', monospace;
-            --display:   'Syne', sans-serif;
+            --display:   'Calibri', sans-serif;
         }
 
         body {
@@ -66,6 +66,10 @@
             letter-spacing: 0.15em;
             color: var(--accent);
             text-transform: uppercase;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .header-tag {
@@ -322,9 +326,24 @@
             transition: border-color 0.2s;
         }
 
-        .field input:focus {
+        .field input:focus,
+        .field textarea:focus {
             outline: none;
             border-color: var(--accent-dim);
+        }
+
+        .field textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-family: var(--mono);
+            font-size: 0.9rem;
+            transition: border-color 0.2s;
+            resize: vertical;
+            line-height: 1.6;
         }
 
         /* ── Button ── */
@@ -965,13 +984,89 @@
             .landing-hero h1 { font-size: 2.2rem; }
             .how-it-works { padding: 3rem 1.5rem; }
         }
+
+        /* ── Footer Blue Theme ── */
+        .footer {
+            position: relative;
+            background: linear-gradient(180deg, #0a1628 0%, #081220 100%);
+            border-top: 1px solid rgba(0, 180, 216, 0.15);
+            padding: 4rem 2.5rem 2rem;
+            margin-top: 4rem;
+        }
+
+        .footer::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(0,180,216,0.5), transparent);
+        }
+
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1.5fr;
+            gap: 3rem;
+        }
+
+        .footer-brand h3 {
+            font-family: var(--display);
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #00d4ff;
+            margin-bottom: 1rem;
+            letter-spacing: 0.02em;
+        }
+
+        .footer-brand p { font-size: 0.9rem; color: #8b9dc3; line-height: 1.7; max-width: 320px; }
+
+        .footer-section h4 {
+            font-family: var(--mono);
+            font-size: 0.75rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: #00d4ff;
+            margin-bottom: 1.25rem;
+        }
+
+        .footer-section ul { list-style: none; }
+        .footer-section li { margin-bottom: 0.75rem; }
+
+        .footer-section a { font-size: 0.9rem; color: #8b9dc3; text-decoration: none; transition: color 0.2s; }
+        .footer-section a:hover { color: #00d4ff; }
+
+        .footer-contact p { font-size: 0.85rem; color: #8b9dc3; margin-bottom: 0.6rem; line-height: 1.6; }
+        .footer-contact a { color: #8b9dc3; text-decoration: none; transition: color 0.2s; }
+        .footer-contact a:hover { color: #00d4ff; }
+        .footer-contact span { color: #5a7199; font-family: var(--mono); font-size: 0.8rem; }
+
+        .footer-bottom {
+            max-width: 1200px;
+            margin: 3rem auto 0;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(0,180,216,0.1);
+            text-align: center;
+        }
+
+        .footer-bottom p { font-family: var(--mono); font-size: 0.75rem; color: #5a7199; line-height: 1.8; }
+
+        @media (max-width: 900px) {
+            .footer-container { grid-template-columns: 1fr 1fr; gap: 2rem; }
+            .footer-brand { grid-column: 1 / -1; }
+        }
+
+        @media (max-width: 600px) {
+            .footer-container { grid-template-columns: 1fr; gap: 2rem; text-align: center; }
+            .footer-brand p { max-width: none; }
+        }
     </style>
 </head>
 <body>
 
 <!-- ── Header ── -->
 <header>
-    <div class="logo">Systemize</div>
+    <div class="logo"><img src="/static/uploads/logos/Main Logo.png" alt="Systemize Solutions" style="height:36px;width:auto;display:block;"> Systemize</div>
     <div class="header-tag">Affordability Assessment Report Generator</div>
 </header>
 
@@ -1015,8 +1110,8 @@
             <div class="step">
                 <div class="step-num">1</div>
                 <div class="step-content">
-                    <h4>Submit Links</h4>
-                    <p>Paste Credit Report links into our system.</p>
+                    <h4>Submit CSV</h4>
+                    <p>Upload Credit Report into our system.</p>
                 </div>
             </div>
             <div class="step">
@@ -1119,37 +1214,37 @@
         </div>
     </div>
 
-    <!-- ── Branding modal ── -->
-    <div class="modal-overlay" id="brandingModal">
-        <div class="modal-card">
-            <h2 class="modal-title">Company Branding</h2>
-            <p class="modal-subtitle">Your logo and footer will be applied to every generated Letter of Claim.</p>
+</main>
 
-            <div class="field">
-                <label for="modalCompanyName">Company Name</label>
-                <input type="text" id="modalCompanyName" placeholder="e.g. Acme Solutions Ltd" autocomplete="organization">
-                <span class="modal-lookup-msg" id="lookupMsg"></span>
-            </div>
+<!-- ── Branding modal (body-level so it sits above all stacking contexts) ── -->
+<div class="modal-overlay" id="brandingModal">
+    <div class="modal-card">
+        <h2 class="modal-title">Company Branding</h2>
+        <p class="modal-subtitle">Your logo and footer will be applied to every generated Letter of Claim.</p>
 
-            <div class="field">
-                <label for="modalLogo">Header Logo <span class="field-hint">(PNG / JPG / SVG)</span></label>
-                <input type="file" id="modalLogo" accept="image/*">
-                <img id="logoPreview" class="logo-preview" src="" alt="Logo preview">
-            </div>
+        <div class="field">
+            <label for="modalCompanyName">Company Name</label>
+            <input type="text" id="modalCompanyName" placeholder="e.g. Acme Solutions Ltd" autocomplete="organization">
+            <span class="modal-lookup-msg" id="lookupMsg"></span>
+        </div>
 
-            <div class="field">
-                <label for="modalFooter">Footer Message</label>
-                <textarea id="modalFooter" rows="3" placeholder="e.g. Acme Solutions Ltd · Registered in England · Co. No. 12345678"></textarea>
-            </div>
+        <div class="field">
+            <label for="modalLogo">Header Logo <span class="field-hint">(PNG / JPG / SVG)</span></label>
+            <input type="file" id="modalLogo" accept="image/*">
+            <img id="logoPreview" class="logo-preview" src="" alt="Logo preview">
+        </div>
 
-            <div class="modal-actions">
-                <button class="btn btn-ghost" id="modalCancelBtn">Cancel</button>
-                <button class="btn" id="modalProcessBtn">Save &amp; Process</button>
-            </div>
+        <div class="field">
+            <label for="modalFooter">Footer Message</label>
+            <textarea id="modalFooter" rows="3" placeholder="e.g. Acme Solutions Ltd · Registered in England · Co. No. 12345678"></textarea>
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn btn-ghost" id="modalCancelBtn">Cancel</button>
+            <button class="btn" id="modalProcessBtn">Save &amp; Process</button>
         </div>
     </div>
-
-</main>
+</div>
 
 
 <script>
@@ -1397,140 +1492,6 @@
         return str.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 </script>
-
-<style>
-    /* ── Footer Blue Theme ── */
-    .footer {
-        position: relative;
-        z-index: 1;
-        background: linear-gradient(180deg, #0a1628 0%, #081220 100%);
-        border-top: 1px solid rgba(0, 180, 216, 0.15);
-        padding: 4rem 2.5rem 2rem;
-        margin-top: 4rem;
-    }
-
-    .footer::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 1px;
-        background: linear-gradient(90deg, transparent, rgba(0, 180, 216, 0.5), transparent);
-    }
-
-    .footer-container {
-        max-width: 1200px;
-        margin: 0 auto;
-        display: grid;
-        grid-template-columns: 2fr 1fr 1fr 1.5fr;
-        gap: 3rem;
-    }
-
-    .footer-brand h3 {
-        font-family: var(--display);
-        font-size: 1.4rem;
-        font-weight: 700;
-        color: #00d4ff;
-        margin-bottom: 1rem;
-        letter-spacing: 0.02em;
-    }
-
-    .footer-brand p {
-        font-size: 0.9rem;
-        color: #8b9dc3;
-        line-height: 1.7;
-        max-width: 320px;
-    }
-
-    .footer-section h4 {
-        font-family: var(--mono);
-        font-size: 0.75rem;
-        letter-spacing: 0.15em;
-        text-transform: uppercase;
-        color: #00d4ff;
-        margin-bottom: 1.25rem;
-    }
-
-    .footer-section ul {
-        list-style: none;
-    }
-
-    .footer-section li {
-        margin-bottom: 0.75rem;
-    }
-
-    .footer-section a {
-        font-size: 0.9rem;
-        color: #8b9dc3;
-        text-decoration: none;
-        transition: color 0.2s ease;
-    }
-
-    .footer-section a:hover {
-        color: #00d4ff;
-    }
-
-    .footer-contact p {
-        font-size: 0.85rem;
-        color: #8b9dc3;
-        margin-bottom: 0.6rem;
-        line-height: 1.6;
-    }
-
-    .footer-contact a {
-        color: #8b9dc3;
-        text-decoration: none;
-        transition: color 0.2s ease;
-    }
-
-    .footer-contact a:hover {
-        color: #00d4ff;
-    }
-
-    .footer-contact span {
-        color: #5a7199;
-        font-family: var(--mono);
-        font-size: 0.8rem;
-    }
-
-    .footer-bottom {
-        max-width: 1200px;
-        margin: 3rem auto 0;
-        padding-top: 1.5rem;
-        border-top: 1px solid rgba(0, 180, 216, 0.1);
-        text-align: center;
-    }
-
-    .footer-bottom p {
-        font-family: var(--mono);
-        font-size: 0.75rem;
-        color: #5a7199;
-        line-height: 1.8;
-    }
-
-    /* Responsive footer */
-    @media (max-width: 900px) {
-        .footer-container {
-            grid-template-columns: 1fr 1fr;
-            gap: 2rem;
-        }
-        .footer-brand {
-            grid-column: 1 / -1;
-        }
-    }
-
-    @media (max-width: 600px) {
-        .footer-container {
-            grid-template-columns: 1fr;
-            gap: 2rem;
-            text-align: center;
-        }
-        .footer-brand p {
-            max-width: none;
-        }
-    }
-</style>
 
 <footer class="footer">
     <div class="footer-container">
