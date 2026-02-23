@@ -477,6 +477,93 @@
 
         .review-notice-icon { font-size: 1.2rem; flex-shrink: 0; }
 
+        /* ── Branding modal ── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.65);
+            backdrop-filter: blur(6px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active { display: flex; }
+
+        .modal-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem 2.25rem;
+            width: min(500px, 92vw);
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+        }
+
+        .modal-title {
+            font-family: var(--display);
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 0.35rem;
+        }
+
+        .modal-subtitle {
+            font-family: var(--mono);
+            font-size: 0.76rem;
+            color: var(--muted);
+            margin-bottom: 1.75rem;
+        }
+
+        .field-hint {
+            font-family: var(--mono);
+            font-size: 0.72rem;
+            color: var(--muted);
+            font-weight: 400;
+        }
+
+        .modal-lookup-msg {
+            display: block;
+            font-family: var(--mono);
+            font-size: 0.74rem;
+            margin-top: 0.3rem;
+            min-height: 1em;
+        }
+
+        .modal-lookup-msg.found { color: var(--accent); }
+        .modal-lookup-msg.new   { color: var(--muted); }
+
+        .logo-preview {
+            display: none;
+            max-height: 64px;
+            max-width: 220px;
+            margin-top: 0.6rem;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            padding: 4px;
+            background: var(--surface2);
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+            margin-top: 1.75rem;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--muted);
+        }
+
+        .btn-ghost:hover {
+            border-color: var(--accent-dim);
+            color: var(--text);
+        }
+
         .review-notice-contact {
             display: flex;
             gap: 1.5rem;
@@ -998,11 +1085,6 @@
             <div class="file-pill" id="filePill"></div>
         </div>
 
-        <div class="field">
-            <label for="sheetName">Google Sheets tab name</label>
-            <input type="text" id="sheetName" value="Tracker" placeholder="Tracker">
-        </div>
-
         <button class="btn" id="submitBtn" disabled>Process CSV &amp; Upload to Drive</button>
 
         <div class="progress-wrap" id="progressWrap">
@@ -1037,6 +1119,36 @@
         </div>
     </div>
 
+    <!-- ── Branding modal ── -->
+    <div class="modal-overlay" id="brandingModal">
+        <div class="modal-card">
+            <h2 class="modal-title">Company Branding</h2>
+            <p class="modal-subtitle">Your logo and footer will be applied to every generated Letter of Claim.</p>
+
+            <div class="field">
+                <label for="modalCompanyName">Company Name</label>
+                <input type="text" id="modalCompanyName" placeholder="e.g. Acme Solutions Ltd" autocomplete="organization">
+                <span class="modal-lookup-msg" id="lookupMsg"></span>
+            </div>
+
+            <div class="field">
+                <label for="modalLogo">Header Logo <span class="field-hint">(PNG / JPG / SVG)</span></label>
+                <input type="file" id="modalLogo" accept="image/*">
+                <img id="logoPreview" class="logo-preview" src="" alt="Logo preview">
+            </div>
+
+            <div class="field">
+                <label for="modalFooter">Footer Message</label>
+                <textarea id="modalFooter" rows="3" placeholder="e.g. Acme Solutions Ltd · Registered in England · Co. No. 12345678"></textarea>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-ghost" id="modalCancelBtn">Cancel</button>
+                <button class="btn" id="modalProcessBtn">Save &amp; Process</button>
+            </div>
+        </div>
+    </div>
+
 </main>
 
 
@@ -1046,7 +1158,14 @@
     const fileInput  = document.getElementById('fileInput');
     const filePill   = document.getElementById('filePill');
     const submitBtn  = document.getElementById('submitBtn');
-    const sheetName  = document.getElementById('sheetName');
+    const brandingModal     = document.getElementById('brandingModal');
+    const modalCompanyName  = document.getElementById('modalCompanyName');
+    const modalLogo         = document.getElementById('modalLogo');
+    const logoPreview       = document.getElementById('logoPreview');
+    const modalFooter       = document.getElementById('modalFooter');
+    const lookupMsg         = document.getElementById('lookupMsg');
+    const modalCancelBtn    = document.getElementById('modalCancelBtn');
+    const modalProcessBtn   = document.getElementById('modalProcessBtn');
     const progressWrap  = document.getElementById('progressWrap');
     const progressBar   = document.getElementById('progressBar');
     const progressLabel = document.getElementById('progressLabel');
@@ -1087,6 +1206,7 @@
         filePill.classList.add('show');
         dropZone.classList.add('has-file');
         submitBtn.disabled = false;
+        openBrandingModal();
     }
 
     /* ── Progress helpers ── */
@@ -1095,25 +1215,104 @@
         progressLabel.textContent = label;
     }
 
-    /* ── Submit ── */
-    submitBtn.addEventListener('click', async () => {
+    /* ── Submit (opens modal instead of processing directly) ── */
+    submitBtn.addEventListener('click', () => {
         if (!selectedFile) return;
+        openBrandingModal();
+    });
 
-        resultsSection.classList.remove('show');
-        progressWrap.classList.add('show');
-        setProgress(15, 'Uploading CSV…');
+    /* ── Branding modal ── */
+    function openBrandingModal() {
+        brandingModal.classList.add('active');
+        modalCompanyName.focus();
+    }
+
+    function closeBrandingModal() {
+        brandingModal.classList.remove('active');
+    }
+
+    modalCancelBtn.addEventListener('click', () => {
+        closeBrandingModal();
+        selectedFile = null;
+        filePill.textContent = '';
+        filePill.classList.remove('show');
+        dropZone.classList.remove('has-file');
         submitBtn.disabled = true;
+        fileInput.value = '';
+    });
+
+    /* Company name lookup — fetch existing config on blur */
+    modalCompanyName.addEventListener('blur', async () => {
+        const name = modalCompanyName.value.trim();
+        if (!name) { lookupMsg.textContent = ''; lookupMsg.className = 'modal-lookup-msg'; return; }
 
         try {
+            const r = await fetch(`/company/${encodeURIComponent(name)}`);
+            if (r.ok) {
+                const cfg = await r.json();
+                lookupMsg.textContent = '✓ Returning company — existing branding pre-loaded.';
+                lookupMsg.className = 'modal-lookup-msg found';
+                if (cfg.footer_message) modalFooter.value = cfg.footer_message;
+                if (cfg.logo_url) {
+                    logoPreview.src = cfg.logo_url;
+                    logoPreview.style.display = 'block';
+                }
+            } else {
+                lookupMsg.textContent = 'New company — fill in your branding below.';
+                lookupMsg.className = 'modal-lookup-msg new';
+            }
+        } catch (_) { /* network error — ignore */ }
+    });
+
+    /* Logo file preview */
+    modalLogo.addEventListener('change', () => {
+        const f = modalLogo.files[0];
+        if (f) {
+            logoPreview.src = URL.createObjectURL(f);
+            logoPreview.style.display = 'block';
+        }
+    });
+
+    /* Save branding then run batch process */
+    modalProcessBtn.addEventListener('click', async () => {
+        const companyName = modalCompanyName.value.trim();
+        if (!companyName) {
+            modalCompanyName.focus();
+            lookupMsg.textContent = 'Company name is required.';
+            lookupMsg.className = 'modal-lookup-msg new';
+            return;
+        }
+
+        modalProcessBtn.disabled = true;
+        modalProcessBtn.textContent = 'Saving…';
+
+        try {
+            /* 1 — Save branding config */
+            const configData = new FormData();
+            configData.append('company_name', companyName);
+            configData.append('footer_message', modalFooter.value.trim());
+            if (modalLogo.files[0]) configData.append('logo', modalLogo.files[0]);
+
+            const cfgResp = await fetch('/company/config', { method: 'POST', body: configData });
+            if (!cfgResp.ok) {
+                const e = await cfgResp.json();
+                throw new Error(e.detail || 'Failed to save company config');
+            }
+
+            /* 2 — Close modal, start batch process */
+            closeBrandingModal();
+            progressWrap.classList.add('show');
+            setProgress(15, 'Uploading CSV…');
+            submitBtn.disabled = true;
+
             const formData = new FormData();
             formData.append('file', selectedFile);
-            const tab = sheetName.value.trim() || 'Tracker';
 
             setProgress(30, 'Analysing credit reports…');
 
-            const resp = await fetch(`/batch-process-csv?sheet_name=${encodeURIComponent(tab)}`, {
+            const resp = await fetch(`/batch-process-csv?company_name=${encodeURIComponent(companyName)}`, {
                 method: 'POST',
-                body: formData
+                body: formData,
             });
 
             setProgress(80, 'Uploading to Google Drive…');
@@ -1137,6 +1336,8 @@
             setProgress(0, '');
             alert(`Error: ${err.message}`);
         } finally {
+            modalProcessBtn.disabled = false;
+            modalProcessBtn.textContent = 'Save & Process';
             submitBtn.disabled = false;
         }
     });
