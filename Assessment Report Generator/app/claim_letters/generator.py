@@ -736,6 +736,64 @@ class ClaimLetterGenerator:
             next_numId += 1
 
     @staticmethod
+    def fix_typed_sublist_numbering(doc: Document, conditional_section_keys: set) -> None:
+        """
+        Fix sub-item paragraphs where the number is typed as plain text,
+        e.g. "21.2 without failing..." → "b. without failing...".
+
+        The template uses two conventions for sub-items:
+          1. Word list paragraphs (ilvl=1) — handled by fix_sublist_numbering.
+          2. Plain-text paragraphs that begin with "XX.Y " (digits, dot, digits,
+             space) typed literally in the content — handled here.
+
+        Conversion rule: Y maps directly to a letter (1→a, 2→b, …, 26→z).
+        Paragraphs whose "XX.Y" key is in conditional_section_keys (e.g. "22.1",
+        "23.2") are section headers, not sub-items, and are left unchanged.
+
+        Only the first run of each paragraph is inspected and modified, so all
+        other runs retain their existing character formatting.
+        """
+        for paragraph in doc.paragraphs:
+            if not paragraph.runs:
+                continue
+
+            # Assemble the full paragraph text across ALL runs, then check for
+            # the "XX.Y " prefix.  Checking only runs[0] misses paragraphs where
+            # the first run is empty (common in Word templates) and the number
+            # text lives in a later run.
+            full_text = ''.join(run.text for run in paragraph.runs)
+            if not full_text:
+                continue
+
+            match = re.match(r'^(\s*)(\d+)\.(\d+)\s+', full_text)
+            if not match:
+                continue
+
+            XX = int(match.group(2))
+            Y  = int(match.group(3))
+            key = f"{XX}.{Y}"
+
+            # Leave conditional section headers (e.g. "22.1", "23.2") unchanged
+            if key in conditional_section_keys:
+                continue
+
+            # Letters only go a–z; skip anything beyond that
+            if Y < 1 or Y > 26:
+                continue
+
+            letter = chr(ord('a') + Y - 1)   # 1→'a', 2→'b', 11→'k', …
+
+            leading_ws = match.group(1)
+            new_full_text = leading_ws + letter + '. ' + full_text[match.end():]
+
+            # Write the corrected text back: put everything into the first run
+            # and clear the rest.  The sub-item paragraphs in this template are
+            # plain text so collapsing runs is safe.
+            paragraph.runs[0].text = new_full_text
+            for run in paragraph.runs[1:]:
+                run.text = ''
+
+    @staticmethod
     def replace_text_in_paragraph(paragraph, search_str: str, replace_str: str) -> bool:
         """
         Replace text in a paragraph, handling text split across multiple runs.
@@ -908,6 +966,9 @@ class ClaimLetterGenerator:
             # Fix indented sub-list numbering: level-1 items → letters (a, b, c…)
             # restarting from 'a' under each top-level numbered parent
             self.fix_sublist_numbering(doc)
+
+            # Fix sub-items whose number is typed as plain text ("21.2 text…" → "b. text…")
+            self.fix_typed_sublist_numbering(doc, set(self.conditional_sections.keys()))
             
             # Get current date
             current_date = datetime.now().strftime('%d/%m/%Y')
