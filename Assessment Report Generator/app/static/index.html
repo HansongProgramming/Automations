@@ -1298,7 +1298,6 @@
         <div class="spinner-ring"></div>
         <div>
             <div class="loading-text" id="loadingLabel">Processing…</div>
-            <div class="loading-pct"  id="loadingPct">0%</div>
         </div>
         <div class="loading-warn">&#9888; Do not close this tab — the automation is still running.</div>
     </div>
@@ -1320,7 +1319,6 @@
     const modalProcessBtn   = document.getElementById('modalProcessBtn');
     const loadingOverlay = document.getElementById('loadingOverlay');
     const loadingLabel   = document.getElementById('loadingLabel');
-    const loadingPct     = document.getElementById('loadingPct');
     const resultsSection = document.getElementById('resultsSection');
     const summaryGrid    = document.getElementById('summaryGrid');
     const reviewNotice   = document.getElementById('reviewNotice');
@@ -1362,9 +1360,49 @@
     }
 
     /* ── Loading overlay helpers ── */
+    const quirkMessages = [
+        'Crunching the numbers…',
+        'Interrogating the spreadsheet…',
+        'Herding credit reports…',
+        'Wrangling PDFs into submission…',
+        'Teaching the AI to read…',
+        'Consulting the algorithm…',
+        'Decoding financial mysteries…',
+        'Running compliance checks…',
+        'Cross-referencing everything…',
+        'Asking nicely for data…',
+        'Converting chaos to clarity…',
+        'Checking the fine print…',
+        'Doing maths on your behalf…',
+        'Chasing down those links…',
+        'Almost there, probably…',
+        'Applying excessive diligence…',
+        'Thinking very hard thoughts…',
+        'Translating spreadsheet into English…',
+    ];
+    let quirkInterval = null;
+    let quirkIndex    = 0;
+
+    function startQuirkyMessages() {
+        quirkIndex = Math.floor(Math.random() * quirkMessages.length);
+        loadingLabel.textContent = quirkMessages[quirkIndex];
+        quirkInterval = setInterval(() => {
+            quirkIndex = (quirkIndex + 1) % quirkMessages.length;
+            loadingLabel.textContent = quirkMessages[quirkIndex];
+        }, 2500);
+    }
+
+    function stopQuirkyMessages() {
+        if (quirkInterval) { clearInterval(quirkInterval); quirkInterval = null; }
+    }
+
     function setProgress(pct, label) {
-        loadingLabel.textContent = label;
-        loadingPct.textContent   = pct + '%';
+        if (pct === 15) {
+            startQuirkyMessages();
+        } else {
+            stopQuirkyMessages();
+            loadingLabel.textContent = label;
+        }
         if (pct >= 100) playCompletionSound();
     }
 
@@ -1478,8 +1516,6 @@
 
             const formData = new FormData();
             formData.append('file', selectedFile);
-
-            setProgress(30, 'Analysing credit reports…');
 
             const resp = await fetch(`/batch-process-csv?company_name=${encodeURIComponent(companyName)}`, {
                 method: 'POST',
