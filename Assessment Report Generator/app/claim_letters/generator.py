@@ -556,6 +556,186 @@ class ClaimLetterGenerator:
             p_element.getparent().remove(p_element)
     
     @staticmethod
+    def fix_sublist_numbering(doc: Document) -> None:
+        """
+        Fix indented sub-list items (ilvl=1) so they:
+          - Display as lowercase letters (a, b, c...) instead of decimal numbers
+          - Restart from 'a' under each new top-level numbered parent item (ilvl=0)
+
+        Root cause: abstractNum definitions for the main numbered sections use
+        decimal format at level 1 with text like "%1.%2", producing "15.1", "15.2"
+        instead of "a.", "b.".  Additionally there is no startOverride, so the
+        letter counter never resets between sections.
+        """
+        from lxml import etree
+
+        # Access the numbering part; bail out gracefully if missing
+        try:
+            numbering_part = doc.part.numbering_part
+            if numbering_part is None:
+                return
+        except AttributeError:
+            return
+
+        num_root = numbering_part._element
+
+        # ---- Build lookup maps ----
+
+        # abstractNumId -> {ilvl_str: lvl_element}
+        abstract_lvl_map: Dict[str, Dict[str, Any]] = {}
+        for abstr in num_root.findall(qn('w:abstractNum')):
+            abstr_id = abstr.get(qn('w:abstractNumId'))
+            lvls: Dict[str, Any] = {}
+            for lvl in abstr.findall(qn('w:lvl')):
+                ilvl_val = lvl.get(qn('w:ilvl'))
+                lvls[ilvl_val] = lvl
+            abstract_lvl_map[abstr_id] = lvls
+
+        # numId -> abstractNumId
+        num_to_abstr: Dict[str, str] = {}
+        for num_elem in num_root.findall(qn('w:num')):
+            nid = num_elem.get(qn('w:numId'))
+            abstr_ref = num_elem.find(qn('w:abstractNumId'))
+            if abstr_ref is not None:
+                num_to_abstr[nid] = abstr_ref.get(qn('w:val'))
+
+        # ---- Fix level-1 format: decimal + parent-reference text → lowerLetter ----
+        #
+        # We only touch abstractNums where level-1 is decimal AND the lvlText
+        # references the parent level ("%1"), which produces "15.1" style output.
+        # Already-correct lowerLetter definitions are left unchanged.
+
+        abstracts_needing_fix: set = set()
+        for para in doc.paragraphs:
+            pPr = para._p.find(qn('w:pPr'))
+            if pPr is None:
+                continue
+            numPr = pPr.find(qn('w:numPr'))
+            if numPr is None:
+                continue
+            ilvl_e = numPr.find(qn('w:ilvl'))
+            numId_e = numPr.find(qn('w:numId'))
+            if ilvl_e is None or numId_e is None:
+                continue
+            if ilvl_e.get(qn('w:val')) == '1':
+                abstr_id = num_to_abstr.get(numId_e.get(qn('w:val')))
+                if abstr_id:
+                    abstracts_needing_fix.add(abstr_id)
+
+        for abstr_id in abstracts_needing_fix:
+            lvl1 = abstract_lvl_map.get(abstr_id, {}).get('1')
+            if lvl1 is None:
+                continue
+
+            nf = lvl1.find(qn('w:numFmt'))
+            lt = lvl1.find(qn('w:lvlText'))
+            current_fmt = nf.get(qn('w:val'), '') if nf is not None else ''
+            current_text = lt.get(qn('w:val'), '') if lt is not None else ''
+
+            # Only change if it's currently decimal with a parent reference (%1)
+            if current_fmt == 'decimal' and '%1' in current_text:
+                if nf is not None:
+                    nf.set(qn('w:val'), 'lowerLetter')
+                if lt is not None:
+                    lt.set(qn('w:val'), '%2.')
+
+        # ---- Collect groups of level-1 items, one group per level-0 parent ----
+        #
+        # A "group" is the contiguous sequence of ilvl=1 paragraphs that
+        # immediately follow an ilvl=0 paragraph (possibly with intervening
+        # non-list paragraphs between the parent and its sub-items).
+
+        groups: List[List[Any]] = []   # each entry: list of (para, numId_element)
+        current_group: List[Any] = []
+        after_level0 = False
+
+        for para in doc.paragraphs:
+            pPr = para._p.find(qn('w:pPr'))
+            if pPr is None:
+                # Non-XML paragraph; end any open group but stay in after_level0
+                if current_group:
+                    groups.append(current_group)
+                    current_group = []
+                continue
+
+            numPr = pPr.find(qn('w:numPr'))
+            if numPr is None:
+                # Regular (non-list) paragraph; end any open group but keep context
+                if current_group:
+                    groups.append(current_group)
+                    current_group = []
+                continue
+
+            ilvl_e = numPr.find(qn('w:ilvl'))
+            numId_e = numPr.find(qn('w:numId'))
+            if ilvl_e is None or numId_e is None:
+                continue
+
+            ilvl = int(ilvl_e.get(qn('w:val'), '0'))
+
+            if ilvl == 0:
+                # New top-level item — save previous group and start fresh
+                if current_group:
+                    groups.append(current_group)
+                    current_group = []
+                after_level0 = True
+
+            elif ilvl == 1 and after_level0:
+                current_group.append((para, numId_e))
+
+        if current_group:
+            groups.append(current_group)
+
+        # ---- Create a new numId with startOverride=1 for every group ----
+        #
+        # This forces Word to restart the letter counter at 'a' for each group,
+        # regardless of what other sub-lists appeared earlier in the document.
+
+        all_num_ids = []
+        for num_elem in num_root.findall(qn('w:num')):
+            try:
+                all_num_ids.append(int(num_elem.get(qn('w:numId'), '0')))
+            except ValueError:
+                pass
+        next_numId = max(all_num_ids, default=0) + 1
+
+        for group in groups:
+            if not group:
+                continue
+
+            first_numId_str = group[0][1].get(qn('w:val'))
+            abstr_id = num_to_abstr.get(first_numId_str)
+            if not abstr_id:
+                continue
+
+            new_num_id_str = str(next_numId)
+
+            # <w:num w:numId="X">
+            #   <w:abstractNumId w:val="Y"/>
+            #   <w:lvlOverride w:ilvl="1">
+            #     <w:startOverride w:val="1"/>
+            #   </w:lvlOverride>
+            # </w:num>
+            new_num = etree.SubElement(num_root, qn('w:num'))
+            new_num.set(qn('w:numId'), new_num_id_str)
+
+            abstr_ref_e = etree.SubElement(new_num, qn('w:abstractNumId'))
+            abstr_ref_e.set(qn('w:val'), abstr_id)
+
+            lvl_override = etree.SubElement(new_num, qn('w:lvlOverride'))
+            lvl_override.set(qn('w:ilvl'), '1')
+
+            start_override = etree.SubElement(lvl_override, qn('w:startOverride'))
+            start_override.set(qn('w:val'), '1')
+
+            # Reassign every paragraph in this group to the new numId
+            for _, numId_e in group:
+                numId_e.set(qn('w:val'), new_num_id_str)
+
+            num_to_abstr[new_num_id_str] = abstr_id
+            next_numId += 1
+
+    @staticmethod
     def replace_text_in_paragraph(paragraph, search_str: str, replace_str: str) -> bool:
         """
         Replace text in a paragraph, handling text split across multiple runs.
@@ -724,6 +904,10 @@ class ClaimLetterGenerator:
             
             # Remove conditional sections that don't have data
             self.remove_conditional_sections(doc, metrics)
+
+            # Fix indented sub-list numbering: level-1 items → letters (a, b, c…)
+            # restarting from 'a' under each top-level numbered parent
+            self.fix_sublist_numbering(doc)
             
             # Get current date
             current_date = datetime.now().strftime('%d/%m/%Y')
