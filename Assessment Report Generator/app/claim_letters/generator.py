@@ -142,6 +142,10 @@ class ClaimLetterGenerator:
                             address_lines.pop()
                         break
         
+        # Strip leading zeros from house/building numbers at the start of address lines
+        # e.g. "00164 GWYNEDD AVENUE" -> "164 GWYNEDD AVENUE"
+        address_lines = [re.sub(r'^0+(\d)', r'\1', line) for line in address_lines]
+
         # Ensure we have exactly 3 address lines
         while len(address_lines) < 3:
             address_lines.append('')
