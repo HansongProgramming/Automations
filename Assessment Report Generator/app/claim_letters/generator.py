@@ -736,62 +736,61 @@ class ClaimLetterGenerator:
             next_numId += 1
 
     @staticmethod
-    def fix_typed_sublist_numbering(doc: Document, conditional_section_keys: set) -> None:
+    def fix_typed_sublist_numbering(doc: Document) -> None:
         """
-        Fix sub-item paragraphs where the number is typed as plain text,
-        e.g. "21.2 without failing..." → "b. without failing...".
+        Fix sub-item paragraphs whose number is typed as plain text
+        (e.g. "21.2 without failing..." → "b. without failing...").
 
-        The template uses two conventions for sub-items:
+        The template mixes two conventions for sub-items:
           1. Word list paragraphs (ilvl=1) — handled by fix_sublist_numbering.
           2. Plain-text paragraphs that begin with "XX.Y " (digits, dot, digits,
              space) typed literally in the content — handled here.
 
-        Conversion rule: Y maps directly to a letter (1→a, 2→b, …, 26→z).
-        Paragraphs whose "XX.Y" key is in conditional_section_keys (e.g. "22.1",
-        "23.2") are section headers, not sub-items, and are left unchanged.
+        Algorithm — two passes:
+          Pass 1: collect every "XX.Y " paragraph, grouped by the parent
+                  number XX, preserving document order within each group.
+          Pass 2: assign sequential letters (a, b, c, …) within each group
+                  so that whatever items remain after conditional-section
+                  removal always start from 'a', regardless of which Y values
+                  are actually present.
 
-        Only the first run of each paragraph is inspected and modified, so all
-        other runs retain their existing character formatting.
+        Examples:
+          • 23.1 removed, 23.2 + 23.3 remain  →  a, b  (not b, c)
+          • 21.1 + 21.2 + 21.3 all present     →  a, b, c
+          • 30.1 … 30.11 all present            →  a … k
         """
+        from collections import defaultdict
+
+        # ---- Pass 1: collect ----
+        # groups[XX] = list of (paragraph, full_text, match) in document order
+        groups: Dict[int, list] = defaultdict(list)
+
         for paragraph in doc.paragraphs:
             if not paragraph.runs:
                 continue
-
-            # Assemble the full paragraph text across ALL runs, then check for
-            # the "XX.Y " prefix.  Checking only runs[0] misses paragraphs where
-            # the first run is empty (common in Word templates) and the number
-            # text lives in a later run.
             full_text = ''.join(run.text for run in paragraph.runs)
             if not full_text:
                 continue
-
             match = re.match(r'^(\s*)(\d+)\.(\d+)\s+', full_text)
             if not match:
                 continue
-
             XX = int(match.group(2))
-            Y  = int(match.group(3))
-            key = f"{XX}.{Y}"
+            groups[XX].append((paragraph, full_text, match))
 
-            # Leave conditional section headers (e.g. "22.1", "23.2") unchanged
-            if key in conditional_section_keys:
-                continue
-
-            # Letters only go a–z; skip anything beyond that
-            if Y < 1 or Y > 26:
-                continue
-
-            letter = chr(ord('a') + Y - 1)   # 1→'a', 2→'b', 11→'k', …
-
-            leading_ws = match.group(1)
-            new_full_text = leading_ws + letter + '. ' + full_text[match.end():]
-
-            # Write the corrected text back: put everything into the first run
-            # and clear the rest.  The sub-item paragraphs in this template are
-            # plain text so collapsing runs is safe.
-            paragraph.runs[0].text = new_full_text
-            for run in paragraph.runs[1:]:
-                run.text = ''
+        # ---- Pass 2: assign sequential letters ----
+        for XX, items in groups.items():
+            for letter_idx, (para, full_text, match) in enumerate(items):
+                if letter_idx >= 26:
+                    continue   # more than 26 sub-items — leave as-is
+                letter = chr(ord('a') + letter_idx)
+                leading_ws = match.group(1)
+                new_full_text = leading_ws + letter + '. ' + full_text[match.end():]
+                # Collapse all runs into the first one.
+                # Sub-item paragraphs in this template are plain text so this is safe.
+                if para.runs:
+                    para.runs[0].text = new_full_text
+                    for run in para.runs[1:]:
+                        run.text = ''
 
     @staticmethod
     def replace_text_in_paragraph(paragraph, search_str: str, replace_str: str) -> bool:
@@ -968,7 +967,7 @@ class ClaimLetterGenerator:
             self.fix_sublist_numbering(doc)
 
             # Fix sub-items whose number is typed as plain text ("21.2 text…" → "b. text…")
-            self.fix_typed_sublist_numbering(doc, set(self.conditional_sections.keys()))
+            self.fix_typed_sublist_numbering(doc)
             
             # Get current date
             current_date = datetime.now().strftime('%d/%m/%Y')
