@@ -60,10 +60,14 @@ class GoogleDriveUploader:
 
         # Refresh if expired
         if self._creds and self._creds.expired and self._creds.refresh_token:
-            self._creds.refresh(google.auth.transport.requests.Request())
-            self._save_token()
-            logger.info("OAuth token refreshed")
-        elif not self._creds or not self._creds.valid:
+            try:
+                self._creds.refresh(google.auth.transport.requests.Request())
+                self._save_token()
+                logger.info("OAuth token refreshed")
+            except Exception as e:
+                logger.warning(f"Token refresh failed ({e}), forcing re-auth")
+                self._creds = None
+        if not self._creds or not self._creds.valid:
             # Need to re-authenticate — this opens a browser
             logger.warning("OAuth token missing or invalid — starting re-auth flow")
             flow = InstalledAppFlow.from_client_secrets_file(

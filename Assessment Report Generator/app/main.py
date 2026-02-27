@@ -74,9 +74,10 @@ claim_letter_generator = ClaimLetterGenerator(TEMPLATE_PATH)
 
 # Google API Configuration (set via environment variables)
 GOOGLE_CREDENTIALS_PATH = os.getenv("GOOGLE_CREDENTIALS_PATH", "credentials/google-service-account.json")
+GOOGLE_OAUTH_CLIENT_PATH = os.getenv("GOOGLE_OAUTH_CLIENT_PATH", "credentials/oauth-client.json")
 GOOGLE_DRIVE_FOLDER_ID = os.getenv("GOOGLE_DRIVE_FOLDER_ID", None)
 GOOGLE_SHEETS_ID = os.getenv("GOOGLE_SHEETS_ID", None)
-GOOGLE_OAUTH_TOKEN_PATH = os.getenv("GOOGLE_OAUTH_TOKEN_PATH", "credentials/oauth-token.pkl")  # ← ADD THIS
+GOOGLE_OAUTH_TOKEN_PATH = os.getenv("GOOGLE_OAUTH_TOKEN_PATH", "credentials/oauth-token.pkl")
 
 # Initialize Google services (lazy initialization)
 drive_uploader = None
@@ -86,13 +87,13 @@ def get_drive_uploader():
     """Get or initialize Google Drive uploader"""
     global drive_uploader
     if drive_uploader is None:
-        if not os.path.exists(GOOGLE_CREDENTIALS_PATH):
+        if not os.path.exists(GOOGLE_OAUTH_CLIENT_PATH):
             raise HTTPException(
                 status_code=500,
-                detail=f"Google credentials not found at {GOOGLE_CREDENTIALS_PATH}"
+                detail=f"Google OAuth client file not found at {GOOGLE_OAUTH_CLIENT_PATH}"
             )
         drive_uploader = GoogleDriveUploader(
-            credentials_path=GOOGLE_CREDENTIALS_PATH,
+            credentials_path=GOOGLE_OAUTH_CLIENT_PATH,
             folder_id=GOOGLE_DRIVE_FOLDER_ID,
             token_path=GOOGLE_OAUTH_TOKEN_PATH
         )
@@ -102,10 +103,10 @@ def get_sheets_tracker():
     """Get or initialize Google Sheets tracker"""
     global sheets_tracker
     if sheets_tracker is None:
-        if not os.path.exists(GOOGLE_CREDENTIALS_PATH):
+        if not os.path.exists(GOOGLE_OAUTH_CLIENT_PATH):
             raise HTTPException(
                 status_code=500,
-                detail=f"Google credentials not found at {GOOGLE_CREDENTIALS_PATH}"
+                detail=f"Google OAuth client file not found at {GOOGLE_OAUTH_CLIENT_PATH}"
             )
         if not GOOGLE_SHEETS_ID:
             raise HTTPException(
@@ -113,7 +114,7 @@ def get_sheets_tracker():
                 detail="GOOGLE_SHEETS_ID environment variable not set"
             )
         sheets_tracker = GoogleSheetsTracker(
-            credentials_path=GOOGLE_CREDENTIALS_PATH,
+            credentials_path=GOOGLE_OAUTH_CLIENT_PATH,
             spreadsheet_id=GOOGLE_SHEETS_ID,
             token_path=GOOGLE_OAUTH_TOKEN_PATH
         )
