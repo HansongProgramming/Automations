@@ -1560,7 +1560,7 @@
             /* 2 — Close modal, start batch process */
             closeBrandingModal();
             loadingOverlay.classList.add('show');
-            setProgress(15, 'Uploading CSV…');
+            setProgress(10, 'Uploading CSV…');
             submitBtn.disabled = true;
 
             const formData = new FormData();
@@ -1571,13 +1571,12 @@
                 body: formData,
             });
 
-            setProgress(80, 'Uploading to Google Drive…');
-
             if (!resp.ok) {
                 throw new Error(await parseErrorBody(resp));
             }
 
-            const result = await resp.json();
+            const { job_id, total } = await resp.json();
+            const result = await pollJob(job_id, total);
             setProgress(100, 'Done!');
 
             setTimeout(() => {
@@ -1670,6 +1669,31 @@
         });
     }
 
+    /* Poll /batch-job/{job_id} until done, updating the progress bar along the way */
+    async function pollJob(job_id, total) {
+        const POLL_INTERVAL = 3000; // ms
+        while (true) {
+            await new Promise(r => setTimeout(r, POLL_INTERVAL));
+            const pr = await fetch(`/batch-job/${job_id}`);
+            if (!pr.ok) throw new Error(await parseErrorBody(pr));
+            const job = await pr.json();
+
+            if (job.status === 'error') {
+                throw new Error(job.error || 'Batch processing failed');
+            }
+
+            if (job.progress && total > 0) {
+                const done = job.progress.done || 0;
+                const pct  = Math.round(15 + (done / total) * 80);
+                setProgress(pct, job.progress.step || 'Processing…');
+            }
+
+            if (job.status === 'done') {
+                return job.result;
+            }
+        }
+    }
+
     /* Safe error-response parser — avoids crash when server returns HTML instead of JSON */
     async function parseErrorBody(resp) {
         try {
@@ -1736,11 +1760,11 @@
                 method: 'POST',
                 body: formData,
             });
-            setProgress(80, 'Uploading to Google Drive…');
             if (!resp.ok) {
                 throw new Error(await parseErrorBody(resp));
             }
-            const result = await resp.json();
+            const { job_id, total } = await resp.json();
+            const result = await pollJob(job_id, total);
             setProgress(100, 'Done!');
             setTimeout(() => {
                 loadingOverlay.classList.remove('show');

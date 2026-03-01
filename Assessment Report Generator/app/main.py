@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response, StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 import asyncio
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import logging
 import sys
 import zipfile
@@ -11,6 +11,8 @@ from io import BytesIO
 import base64
 import pandas as pd
 import os
+import uuid
+import time
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -127,6 +129,17 @@ if static_dir.exists():
 
 # Ensure logo upload directory exists on startup
 os.makedirs(LOGO_DIR, exist_ok=True)
+
+# ── In-memory job store for background batch processing ──────────────────────
+# Each entry: { status, progress, result, error, created_at }
+_jobs: Dict[str, Dict[str, Any]] = {}
+_JOB_TTL = 3600  # seconds before completed jobs are purged
+
+def _cleanup_jobs():
+    cutoff = time.time() - _JOB_TTL
+    stale = [jid for jid, j in _jobs.items() if j['created_at'] < cutoff]
+    for jid in stale:
+        del _jobs[jid]
 
 
 async def analyze_single_report(url: str, html_content: str) -> Dict[str, Any]:
@@ -926,112 +939,61 @@ async def upsert_company(
     return config
 
 
-@app.post("/batch-process-csv", response_model=CSVBatchProcessResult)
-async def batch_process_csv(
-    file:         UploadFile = File(...),
-    company_name: str        = "Tracker",
-):
-    """
-    Process a CSV file containing credit report links.
+async def _run_batch_job(
+    job_id: str,
+    contents: bytes,
+    company_name: str,
+    branding: Any,
+) -> None:
+    """Background coroutine: does the heavy batch work and stores result in _jobs."""
+    import tempfile, os as _os
 
-    Steps:
-    1. Parse CSV, extract 'Credit File Link' column
-    2. Analyse each credit report
-    3. Generate PDF, HTML, and claim letter (DOCX) for each
-    4. Upload all files to Google Drive under:
-           <root>/<Client Name>/PDF/
-           <root>/<Client Name>/HTML/
-           <root>/<Client Name>/LOC/
-    5. Write per-client rows to Google Sheets with clickable Drive links
-    6. Return summary + per-client Drive links for display in the UI
-
-    Also fully usable via curl:
-
-        curl -X POST http://localhost:8000/batch-process-csv \\
-             -F "file=@input.csv" \\
-             -F "sheet_name=Tracker"
-
-    Response JSON:
-    {
-        "total_processed": 3,
-        "successful": 3,
-        "failed": 0,
-        "drive_uploads": 9,
-        "sheet_updates": 3,
-        "errors": [],
-        "message": "...",
-        "sheets_url": "https://docs.google.com/...",
-        "client_drive_links": [
-            {
-                "client_name": "JOHN DOE",
-                "client_folder_link": "https://drive.google.com/...",
-                "pdf_link":  "https://drive.google.com/...",
-                "html_link": "https://drive.google.com/...",
-                "loc_link":  "https://drive.google.com/...",
-                "error": null
-            }
-        ]
-    }
-    """
-    sheet_name = company_name
-    branding   = get_company(company_name)  # None when company not found / no branding
-
-    logger.info("=" * 60)
-    logger.info(f"CSV batch processing started: {file.filename} | company: {company_name}")
-    logger.info("=" * 60)
+    def _progress(step: str, done: int = 0, total: int = 0):
+        _jobs[job_id]['progress'] = {'step': step, 'done': done, 'total': total}
 
     try:
+        sheet_name = company_name
+
+        logger.info("=" * 60)
+        logger.info(f"CSV batch job {job_id} started | company: {company_name}")
+        logger.info("=" * 60)
+
         # ── Step 1: Parse CSV ──────────────────────────────────────
-        contents = await file.read()
-        try:
-            df = pd.read_csv(BytesIO(contents))
-        except Exception as e:
-            raise HTTPException(status_code=400, detail=f"Failed to parse CSV: {str(e)}")
+        df = pd.read_csv(BytesIO(contents))
 
-        if "Credit File Link" not in df.columns:
-            raise HTTPException(
-                status_code=400,
-                detail=f"CSV must contain 'Credit File Link' column. Found: {', '.join(df.columns)}"
-            )
-
-        urls = [u.strip() for u in df["Credit File Link"].dropna().astype(str).tolist() if u.strip()]
-        if not urls:
-            raise HTTPException(status_code=400, detail="No valid URLs found in 'Credit File Link' column")
-
-        logger.info(f"Found {len(urls)} URL(s) to process")
-
-        # ── Build URL → CSV row data mapping ───────────────────────
         def safe_str(val):
-            """Convert value to string, return empty string if NaN/None."""
             if pd.isna(val):
                 return ''
             return str(val).strip()
 
-        csv_row_by_url: dict[str, dict] = {}
+        urls = [u.strip() for u in df["Credit File Link"].dropna().astype(str).tolist() if u.strip()]
+        total_urls = len(urls)
+
+        csv_row_by_url: dict = {}
         for _, row in df.iterrows():
             url = safe_str(row.get('Credit File Link', ''))
             if url:
                 csv_row_by_url[url] = {
-                    'title': safe_str(row.get('Client 1 Title', '')),
-                    'first_name': safe_str(row.get('Client 1 First Name', '')),
-                    'surname': safe_str(row.get('Client 1 Surname', '')),
-                    'date_of_birth': safe_str(row.get('Client 1 DOB', '')),
+                    'title':        safe_str(row.get('Client 1 Title', '')),
+                    'first_name':   safe_str(row.get('Client 1 First Name', '')),
+                    'surname':      safe_str(row.get('Client 1 Surname', '')),
+                    'date_of_birth':safe_str(row.get('Client 1 DOB', '')),
                     'email': (
                         safe_str(row.get('Client 1 E-mail Address')) or
                         safe_str(row.get('Client 1 Email')) or
                         safe_str(row.get('Email')) or
-                        safe_str(row.get('E-mail')) or
-                        ''
+                        safe_str(row.get('E-mail')) or ''
                     ),
-                    'phone': safe_str(row.get('Client 1 Phone Number', '')),
+                    'phone':       safe_str(row.get('Client 1 Phone Number', '')),
                     'residence_1': safe_str(row.get('Client 1 Residential Address Line 1', '')),
                     'residence_2': safe_str(row.get('Client 1 Residential Address Line 2', '')),
                     'residence_3': safe_str(row.get('Client 1 Residential Address Line 3', '')),
                     'postal_code': safe_str(row.get('Client 1 Residential Postcode', '')),
-                    'defendant': safe_str(row.get('Defendant', '')),
+                    'defendant':   safe_str(row.get('Defendant', '')),
                 }
 
         # ── Step 2: Fetch & analyse ────────────────────────────────
+        _progress('Fetching credit reports…', 0, total_urls)
         fetch_results = await fetch_multiple_html(urls)
         analysis_tasks, analysis_results = [], []
 
@@ -1041,6 +1003,7 @@ async def batch_process_csv(
             else:
                 analysis_results.append({'error': fr.get('error', 'Fetch failed'), 'url': fr['url']})
 
+        _progress('Analysing reports…', 0, total_urls)
         if analysis_tasks:
             analysis_results.extend(await asyncio.gather(*analysis_tasks))
 
@@ -1049,24 +1012,21 @@ async def batch_process_csv(
 
         # ── Step 3: Generate HTML, PDF, and DOCX ──────────────────
         html_results = html_renderer.render_multiple(analysis_results)
-
-        # Build a lookup: client_name -> analysis_result (for DOCX step)
         analysis_by_url = {r.get('url', ''): r for r in analysis_results}
 
-        # ── Step 4: Upload to Drive (per-client folder structure) ──
+        # ── Step 4: Upload to Drive ────────────────────────────────
         uploader = get_drive_uploader()
         tracker  = get_sheets_tracker()
         await tracker.initialize_sheet(sheet_name=sheet_name)
 
-        # We accumulate per-client link info for the UI and Sheets
-        # client_summary: client_name -> { client_folder_link, pdf_link, html_link, loc_link, error }
-        client_summary: dict[str, dict] = {}
-
+        client_summary: dict = {}
         upload_count = 0
         tracking_records = []
         errors = []
 
-        for html_result in html_results:
+        for idx, html_result in enumerate(html_results):
+            _progress(f'Uploading {idx + 1}/{total_urls}…', idx + 1, total_urls)
+
             if 'error' in html_result:
                 client_name = html_result.get('client_name', 'Unknown')
                 url_fail    = html_result.get('url', '')
@@ -1088,14 +1048,13 @@ async def batch_process_csv(
             try:
                 # ── 3a: Generate PDF ───────────────────────────────
                 pdf_bytes = await pdf_generator.html_string_to_pdf(html_result['html'], client_name)
-                safe_name = client_name.replace(' ', '_').replace('/', '_')
+                safe_name     = client_name.replace(' ', '_').replace('/', '_')
                 pdf_filename  = f"{safe_name}_AffordabilityReport.pdf"
                 html_filename = f"{safe_name}_AffordabilityReport.html"
 
                 # ── 3b: Ensure client folder structure exists ──────
                 folders = uploader.get_client_subfolders(client_name)
 
-                # Keep folder links (Drive folder URLs use the same URL structure)
                 def folder_url(fid): return f"https://drive.google.com/drive/folders/{fid}"
                 client_folder_link = folder_url(folders['client'])
                 pdf_folder_link    = folder_url(folders['PDF'])
@@ -1104,70 +1063,53 @@ async def batch_process_csv(
 
                 # ── 3c: Upload PDF ─────────────────────────────────
                 pdf_result = await uploader.upload_file_to_client_folder(
-                    file_bytes=pdf_bytes,
-                    filename=pdf_filename,
-                    client_name=client_name,
-                    file_type='PDF',
-                    mime_type='application/pdf'
+                    file_bytes=pdf_bytes, filename=pdf_filename,
+                    client_name=client_name, file_type='PDF', mime_type='application/pdf'
                 )
-                pdf_view_link = pdf_result.get('web_view_link', pdf_folder_link)
+                pdf_view_link     = pdf_result.get('web_view_link', pdf_folder_link)
                 pdf_download_link = pdf_result.get('web_content_link', '')
                 upload_count += 1
 
                 # ── 3d: Upload HTML ────────────────────────────────
                 html_bytes = html_result['html'].encode('utf-8')
                 html_up = await uploader.upload_file_to_client_folder(
-                    file_bytes=html_bytes,
-                    filename=html_filename,
-                    client_name=client_name,
-                    file_type='HTML',
-                    mime_type='text/html'
+                    file_bytes=html_bytes, filename=html_filename,
+                    client_name=client_name, file_type='HTML', mime_type='text/html'
                 )
-                html_view_link = html_up.get('web_view_link', html_folder_link)
+                html_view_link     = html_up.get('web_view_link', html_folder_link)
                 html_download_link = html_up.get('web_content_link', '')
                 upload_count += 1
 
                 # ── 3e: Upload DOCX claim letters ──────────────────
-                loc_link = loc_folder_link  # default to folder if no letters
                 analysis_result = analysis_by_url.get(url, {})
-                
-                # Collect LOC uploads for per-defendant tracking
-                loc_uploads: list[dict] = []
+                loc_uploads: list = []
 
                 if 'credit_analysis' in analysis_result:
-                    credit_analysis = analysis_result['credit_analysis']
-                    in_scope = credit_analysis.get('claims_analysis', {}).get('in_scope', [])
-
+                    in_scope = analysis_result['credit_analysis'].get('claims_analysis', {}).get('in_scope', [])
                     for lender in in_scope:
-                        lender_name     = lender.get('name', 'Unknown_Lender')
-                        safe_lender     = ''.join(c if c.isalnum() or c in [' ', '_'] else '_' for c in lender_name).replace(' ', '_')
-                        docx_filename   = f"{safe_name}_{safe_lender}_LOC.docx"
+                        lender_name   = lender.get('name', 'Unknown_Lender')
+                        safe_lender   = ''.join(c if c.isalnum() or c in [' ', '_'] else '_' for c in lender_name).replace(' ', '_')
+                        docx_filename = f"{safe_name}_{safe_lender}_LOC.docx"
 
-                        import tempfile, os as _os
                         with tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='.docx') as tmp:
                             tmp_path = tmp.name
                         try:
                             success = claim_letter_generator.generate_letter(
-                                tmp_path, analysis_result, lender, debug=False,
-                                branding=branding,
+                                tmp_path, analysis_result, lender, debug=False, branding=branding,
                             )
                             if success:
                                 with open(tmp_path, 'rb') as f:
                                     docx_bytes = f.read()
-
                                 loc_up = await uploader.upload_file_to_client_folder(
-                                    file_bytes=docx_bytes,
-                                    filename=docx_filename,
-                                    client_name=client_name,
-                                    file_type='LOC',
+                                    file_bytes=docx_bytes, filename=docx_filename,
+                                    client_name=client_name, file_type='LOC',
                                     mime_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
                                 )
-                                # Store each LOC upload with defendant info
                                 loc_uploads.append({
-                                    'defendant': lender_name,
-                                    'loc_view_link': loc_up.get('web_view_link', loc_folder_link),
-                                    'loc_download_link': loc_up.get('web_content_link', ''),
-                                    'filename': docx_filename,
+                                    'defendant':        lender_name,
+                                    'loc_view_link':    loc_up.get('web_view_link', loc_folder_link),
+                                    'loc_download_link':loc_up.get('web_content_link', ''),
+                                    'filename':         docx_filename,
                                 })
                                 upload_count += 1
                         finally:
@@ -1176,55 +1118,43 @@ async def batch_process_csv(
 
                 # ── 3f: Store per-client summary ───────────────────
                 client_summary[client_name] = {
-                    'client_name':         client_name,
-                    'client_folder_link':  client_folder_link,
-                    'pdf_link':            pdf_view_link,
-                    'html_link':           html_view_link,
-                    'loc_link':            loc_folder_link,   # always the LOC subfolder
-                    'error':               None,
+                    'client_name':        client_name,
+                    'client_folder_link': client_folder_link,
+                    'pdf_link':           pdf_view_link,
+                    'html_link':          html_view_link,
+                    'loc_link':           loc_folder_link,
+                    'error':              None,
                 }
 
-                # ── 3g: Tracking records for Sheets (one per LOC document) ─
+                # ── 3g: Tracking records ───────────────────────────
                 csv_data = csv_row_by_url.get(url, {})
-                
                 if loc_uploads:
-                    # Create one row per LOC document
                     for loc_info in loc_uploads:
-                        # Override defendant with the lender name for this LOC
                         row_csv_data = csv_data.copy()
                         row_csv_data['defendant'] = loc_info['defendant']
-                        
                         tracking_records.append({
-                            'client_name':    client_name,
-                            'credit_url':     url,
+                            'client_name': client_name, 'credit_url': url,
                             'analysis_result': analysis_result,
                             'drive_result': {
-                                'success':             True,
-                                'client_folder_link':  client_folder_link,
-                                'pdf_view_link':       pdf_view_link,
-                                'pdf_download_link':   pdf_download_link,
-                                'html_view_link':      html_view_link,
-                                'html_download_link':  html_download_link,
-                                'loc_view_link':       loc_info['loc_view_link'],
-                                'loc_download_link':   loc_info['loc_download_link'],
+                                'success': True,
+                                'client_folder_link': client_folder_link,
+                                'pdf_view_link': pdf_view_link, 'pdf_download_link': pdf_download_link,
+                                'html_view_link': html_view_link, 'html_download_link': html_download_link,
+                                'loc_view_link': loc_info['loc_view_link'],
+                                'loc_download_link': loc_info['loc_download_link'],
                             },
                             'csv_row_data': row_csv_data,
                         })
                 else:
-                    # No LOC documents, create single row with folder link
                     tracking_records.append({
-                        'client_name':    client_name,
-                        'credit_url':     url,
+                        'client_name': client_name, 'credit_url': url,
                         'analysis_result': analysis_result,
                         'drive_result': {
-                            'success':             True,
-                            'client_folder_link':  client_folder_link,
-                            'pdf_view_link':       pdf_view_link,
-                            'pdf_download_link':   pdf_download_link,
-                            'html_view_link':      html_view_link,
-                            'html_download_link':  html_download_link,
-                            'loc_view_link':       loc_folder_link,
-                            'loc_download_link':   '',  # No download for folder
+                            'success': True,
+                            'client_folder_link': client_folder_link,
+                            'pdf_view_link': pdf_view_link, 'pdf_download_link': pdf_download_link,
+                            'html_view_link': html_view_link, 'html_download_link': html_download_link,
+                            'loc_view_link': loc_folder_link, 'loc_download_link': '',
                         },
                         'csv_row_data': csv_data,
                     })
@@ -1235,40 +1165,34 @@ async def batch_process_csv(
                 errors.append({'client_name': client_name, 'error': error_str, 'url': url, 'csv_data': csv_row_by_url.get(url, {})})
                 log_failure(client_name, error_str, url=url)
                 client_summary[client_name] = {
-                    'client_name':        client_name,
-                    'client_folder_link': '',
-                    'pdf_link':           '',
-                    'html_link':          '',
-                    'loc_link':           '',
-                    'error':              error_str,
+                    'client_name': client_name, 'client_folder_link': '',
+                    'pdf_link': '', 'html_link': '', 'loc_link': '', 'error': error_str,
                 }
                 tracking_records.append({
-                    'client_name':     client_name,
-                    'credit_url':      url,
+                    'client_name': client_name, 'credit_url': url,
                     'analysis_result': {'error': error_str},
-                    'drive_result':    {'success': False, 'error': error_str},
-                    'csv_row_data':    csv_row_by_url.get(url, {}),
+                    'drive_result': {'success': False, 'error': error_str},
+                    'csv_row_data': csv_row_by_url.get(url, {}),
                 })
 
         # ── Step 5: Write to Google Sheets ─────────────────────────
+        _progress('Writing to Google Sheets…', total_urls, total_urls)
         if tracking_records:
             await tracker.append_multiple_records(tracking_records, sheet_name=sheet_name)
         logger.info(f"Wrote {len(tracking_records)} rows to Sheets")
 
-        # ── Step 6: Build response ─────────────────────────────────
+        # ── Step 6: Build result ───────────────────────────────────
         total      = len(analysis_results)
         successful = sum(1 for v in client_summary.values() if v['error'] is None)
         failed     = len(errors)
-
-        sheets_url = None
-        if GOOGLE_SHEETS_ID:
-            sheets_url = f"https://docs.google.com/spreadsheets/d/{GOOGLE_SHEETS_ID}/edit"
+        sheets_url = f"https://docs.google.com/spreadsheets/d/{GOOGLE_SHEETS_ID}/edit" if GOOGLE_SHEETS_ID else None
 
         logger.info("=" * 60)
         logger.info(f"BATCH COMPLETE — {successful}/{total} succeeded, {upload_count} files uploaded")
         logger.info("=" * 60)
 
-        return CSVBatchProcessResult(
+        _jobs[job_id]['status'] = 'done'
+        _jobs[job_id]['result'] = CSVBatchProcessResult(
             total_processed=total,
             successful=successful,
             failed=failed,
@@ -1281,14 +1205,69 @@ async def batch_process_csv(
                 f"{len(tracking_records)} records added to Google Sheets."
             ),
             sheets_url=sheets_url,
-            client_drive_links=list(client_summary.values())
+            client_drive_links=list(client_summary.values()),
+        ).model_dump()
+
+    except Exception as e:
+        logger.error(f"Batch job {job_id} failed: {e}", exc_info=True)
+        _jobs[job_id]['status'] = 'error'
+        _jobs[job_id]['error']  = str(e)
+
+
+@app.post("/batch-process-csv")
+async def batch_process_csv(
+    file:         UploadFile = File(...),
+    company_name: str        = "Tracker",
+):
+    """
+    Submit a CSV for batch processing. Returns a job_id immediately.
+    Poll GET /batch-job/{job_id} for status and results.
+    """
+    _cleanup_jobs()
+    branding = get_company(company_name)
+
+    contents = await file.read()
+    try:
+        df = pd.read_csv(BytesIO(contents))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to parse CSV: {str(e)}")
+
+    if "Credit File Link" not in df.columns:
+        raise HTTPException(
+            status_code=400,
+            detail=f"CSV must contain 'Credit File Link' column. Found: {', '.join(df.columns)}"
         )
 
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Unexpected error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+    urls = [u.strip() for u in df["Credit File Link"].dropna().astype(str).tolist() if u.strip()]
+    if not urls:
+        raise HTTPException(status_code=400, detail="No valid URLs found in 'Credit File Link' column")
+
+    job_id = str(uuid.uuid4())
+    _jobs[job_id] = {
+        'status':     'running',
+        'progress':   {'step': 'Starting…', 'done': 0, 'total': len(urls)},
+        'result':     None,
+        'error':      None,
+        'created_at': time.time(),
+    }
+
+    asyncio.create_task(_run_batch_job(job_id, contents, company_name, branding))
+    logger.info(f"Batch job {job_id} created for {len(urls)} URL(s)")
+    return JSONResponse({'job_id': job_id, 'total': len(urls)})
+
+
+@app.get("/batch-job/{job_id}")
+async def get_batch_job(job_id: str):
+    """Poll the status of a batch processing job."""
+    job = _jobs.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found or expired")
+    return JSONResponse({
+        'status':   job['status'],
+        'progress': job['progress'],
+        'result':   job['result'],
+        'error':    job['error'],
+    })
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):

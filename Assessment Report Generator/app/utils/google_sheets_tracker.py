@@ -12,7 +12,6 @@ from typing import List, Dict, Any, Optional
 import google.auth.transport.requests
 from app.utils.date_utils import format_sheets_timestamp
 from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
 import requests as req_lib
 
 logger = logging.getLogger(__name__)
@@ -83,12 +82,12 @@ class GoogleSheetsTracker:
             self._save_token()
             logger.info("OAuth token refreshed")
         elif not self._creds or not self._creds.valid:
-            logger.warning("OAuth token missing or invalid — starting re-auth flow")
-            flow = InstalledAppFlow.from_client_secrets_file(
-                self.credentials_path, SCOPES
+            raise RuntimeError(
+                "Google Sheets OAuth token is missing, expired, or revoked and cannot be "
+                "refreshed automatically on a headless server. "
+                "Run scripts/reauth_google.py on your LOCAL machine to generate a fresh "
+                "credentials/oauth-token.pkl, then upload it to the VPS credentials folder."
             )
-            self._creds = flow.run_local_server(port=0)
-            self._save_token()
 
         logger.info("Google Sheets tracker initialised (OAuth transport)")
 

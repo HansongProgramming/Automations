@@ -11,7 +11,6 @@ import pickle
 from typing import Optional
 import google.auth.transport.requests
 from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
 import requests as req_lib
 
 logger = logging.getLogger(__name__)
@@ -68,14 +67,12 @@ class GoogleDriveUploader:
                 logger.warning(f"Token refresh failed ({e}), forcing re-auth")
                 self._creds = None
         if not self._creds or not self._creds.valid:
-            # Need to re-authenticate — this opens a browser
-            logger.warning("OAuth token missing or invalid — starting re-auth flow")
-            flow = InstalledAppFlow.from_client_secrets_file(
-                self.credentials_path, SCOPES
+            raise RuntimeError(
+                "Google Drive OAuth token is missing, expired, or revoked and cannot be "
+                "refreshed automatically on a headless server. "
+                "Run scripts/reauth_google.py on your LOCAL machine to generate a fresh "
+                "credentials/oauth-token.pkl, then upload it to the VPS credentials folder."
             )
-            self._creds = flow.run_local_server(port=0)
-            self._save_token()
-            logger.info("OAuth re-authentication complete")
 
         logger.info("Google Drive uploader initialised (OAuth transport)")
 
