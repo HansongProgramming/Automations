@@ -1,4 +1,5 @@
 import asyncio
+import glob
 import os
 import shutil
 import sys
@@ -63,16 +64,30 @@ class PDFGenerator:
             try:
                 # Generate PDF using Playwright
                 async with async_playwright() as p:
-                    # Discover Chromium: env var → system packages → Playwright's bundled browser
-                    executable_path = (
-                        os.getenv('CHROMIUM_EXECUTABLE_PATH') or
-                        shutil.which('chromium-browser') or
-                        shutil.which('chromium') or
-                        shutil.which('google-chrome') or
-                        None
-                    )
-                    if executable_path:
-                        logger.info(f"Using Chromium at: {executable_path}")
+                    # Resolve Chromium binary: explicit env var → known install dirs
+                    # → system PATH → let Playwright find its own (may fail if env is wrong)
+                    def _find_chromium() -> str | None:
+                        if path := os.getenv('CHROMIUM_EXECUTABLE_PATH'):
+                            return path
+                        # Search known Playwright install locations regardless of env vars
+                        for pattern in [
+                            '/ms-playwright/chromium-*/chrome-linux/chrome',
+                            '/root/.cache/ms-playwright/chromium-*/chrome-linux/chrome',
+                            '/home/*/.cache/ms-playwright/chromium-*/chrome-linux/chrome',
+                        ]:
+                            hits = glob.glob(pattern)
+                            if hits:
+                                return hits[0]
+                        # Fall back to system-installed Chromium
+                        return (
+                            shutil.which('chromium-browser') or
+                            shutil.which('chromium') or
+                            shutil.which('google-chrome') or
+                            None
+                        )
+
+                    executable_path = _find_chromium()
+                    logger.info(f"Chromium executable: {executable_path or '(Playwright default)'}")
                     browser = await p.chromium.launch(
                         headless=True,
                         executable_path=executable_path,

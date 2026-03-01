@@ -2,6 +2,9 @@ FROM python:3.11-slim-bookworm
 
 WORKDIR /app
 
+# Pin browser path so --env-file can never override it at runtime
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+
 # Install base utilities needed before playwright deps
 RUN apt-get update && \
     apt-get install -y --no-install-recommends curl && \
@@ -12,6 +15,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Install Playwright's Chromium + all required system libraries in one step
+# Browsers land at /ms-playwright/ (set above)
 RUN playwright install chromium --with-deps
 
 # Copy application code
