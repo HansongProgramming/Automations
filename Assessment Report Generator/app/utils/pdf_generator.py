@@ -1,4 +1,6 @@
 import asyncio
+import os
+import shutil
 import sys
 from playwright.async_api import async_playwright
 from pathlib import Path
@@ -61,8 +63,19 @@ class PDFGenerator:
             try:
                 # Generate PDF using Playwright
                 async with async_playwright() as p:
+                    # Discover Chromium: env var → system packages → Playwright's bundled browser
+                    executable_path = (
+                        os.getenv('CHROMIUM_EXECUTABLE_PATH') or
+                        shutil.which('chromium-browser') or
+                        shutil.which('chromium') or
+                        shutil.which('google-chrome') or
+                        None
+                    )
+                    if executable_path:
+                        logger.info(f"Using Chromium at: {executable_path}")
                     browser = await p.chromium.launch(
                         headless=True,
+                        executable_path=executable_path,
                         args=['--no-sandbox', '--disable-setuid-sandbox']
                     )
                     
