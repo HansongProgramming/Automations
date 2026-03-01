@@ -1553,8 +1553,7 @@
 
             const cfgResp = await fetch('/company/config', { method: 'POST', body: configData });
             if (!cfgResp.ok) {
-                const e = await cfgResp.json();
-                throw new Error(e.detail || 'Failed to save company config');
+                throw new Error(await parseErrorBody(cfgResp));
             }
 
             /* 2 — Close modal, start batch process */
@@ -1574,8 +1573,7 @@
             setProgress(80, 'Uploading to Google Drive…');
 
             if (!resp.ok) {
-                const err = await resp.json();
-                throw new Error(err.detail || 'Server error');
+                throw new Error(await parseErrorBody(resp));
             }
 
             const result = await resp.json();
@@ -1671,6 +1669,16 @@
         });
     }
 
+    /* Safe error-response parser — avoids crash when server returns HTML instead of JSON */
+    async function parseErrorBody(resp) {
+        try {
+            const data = await resp.json();
+            return data.detail || `Server error ${resp.status}`;
+        } catch (_) {
+            return `Server error ${resp.status}`;
+        }
+    }
+
     function escHtml(str) {
         return String(str)
             .replace(/&/g, '&amp;')
@@ -1729,8 +1737,7 @@
             });
             setProgress(80, 'Uploading to Google Drive…');
             if (!resp.ok) {
-                const err = await resp.json();
-                throw new Error(err.detail || 'Server error');
+                throw new Error(await parseErrorBody(resp));
             }
             const result = await resp.json();
             setProgress(100, 'Done!');
