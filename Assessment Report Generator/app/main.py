@@ -1016,7 +1016,13 @@ async def batch_process_csv(
                     'first_name': safe_str(row.get('Client 1 First Name', '')),
                     'surname': safe_str(row.get('Client 1 Surname', '')),
                     'date_of_birth': safe_str(row.get('Client 1 DOB', '')),
-                    'email': safe_str(row.get('Client 1 E-mail Address', '')),
+                    'email': (
+                        safe_str(row.get('Client 1 E-mail Address')) or
+                        safe_str(row.get('Client 1 Email')) or
+                        safe_str(row.get('Email')) or
+                        safe_str(row.get('E-mail')) or
+                        ''
+                    ),
                     'phone': safe_str(row.get('Client 1 Phone Number', '')),
                     'residence_1': safe_str(row.get('Client 1 Residential Address Line 1', '')),
                     'residence_2': safe_str(row.get('Client 1 Residential Address Line 2', '')),

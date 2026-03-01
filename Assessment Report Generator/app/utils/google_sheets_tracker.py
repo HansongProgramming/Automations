@@ -46,14 +46,13 @@ class GoogleSheetsTracker:
         'Credit Report URL',
         'Analysis Status',
         'Case Status',
-        'PDF Report (View)',
-        'PDF Report (Download)',
-        'HTML Report (View)',
-        'HTML Report (Download)',
-        'LOC Documents (View)',
-        'LOC Documents (Download)',
-        'Client Drive Folder',
+        'PDF Report Download',
+        'HTML Download',
+        'LOC Download',
         'Error Message',
+        '',
+        '',
+        'Client Drive Folder',
     ]
 
     def __init__(
@@ -234,25 +233,14 @@ class GoogleSheetsTracker:
             case_status = _CASE_STATUS_LABELS.get(tl, tl)
 
         if drive_result.get('success'):
-            pdf_view_link      = drive_result.get('pdf_view_link', '')
-            pdf_download_link  = drive_result.get('pdf_download_link', '')
-            html_view_link     = drive_result.get('html_view_link', '')
-            html_download_link = drive_result.get('html_download_link', '')
-            loc_view_link      = drive_result.get('loc_view_link', '')
-            loc_download_link  = drive_result.get('loc_download_link', '')
-            folder_link        = drive_result.get('client_folder_link', '')
-
-            pdf_view_cell      = pdf_view_link
-            pdf_download_cell  = pdf_download_link
-            html_view_cell     = html_view_link
-            html_download_cell = html_download_link
-            loc_view_cell      = loc_view_link
-            loc_download_cell  = loc_download_link
-            folder_cell        = folder_link
+            pdf_download_cell  = drive_result.get('pdf_download_link', '')
+            html_download_cell = drive_result.get('html_download_link', '')
+            loc_download_cell  = drive_result.get('loc_download_link', '')
+            folder_cell        = drive_result.get('client_folder_link', '')
         else:
-            pdf_view_cell = pdf_download_cell = ''
-            html_view_cell = html_download_cell = ''
-            loc_view_cell = loc_download_cell = ''
+            pdf_download_cell = ''
+            html_download_cell = ''
+            loc_download_cell = ''
             folder_cell = ''
             error_msg = error_msg or drive_result.get('error', 'Upload failed')
 
@@ -260,10 +248,12 @@ class GoogleSheetsTracker:
             timestamp, title, first_name, surname, date_of_birth,
             email, phone, residence_1, residence_2, residence_3, postal_code,
             defendant, credit_url, status, case_status,
-            pdf_view_cell, pdf_download_cell,
-            html_view_cell, html_download_cell,
-            loc_view_cell, loc_download_cell,
-            folder_cell, error_msg,
+            pdf_download_cell,
+            html_download_cell,
+            loc_download_cell,
+            error_msg,
+            '', '',
+            folder_cell,
         ]
 
     # ------------------------------------------------------------------
