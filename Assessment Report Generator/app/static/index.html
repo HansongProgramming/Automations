@@ -795,6 +795,54 @@
             color: var(--danger);
         }
 
+        .error-card .err-url {
+            font-family: var(--mono);
+            font-size: 0.7rem;
+            color: var(--muted);
+            margin-top: 0.35rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .retry-btn {
+            margin-top: 0.6rem;
+            background: transparent;
+            border: 1px solid rgba(255,77,109,0.35);
+            border-radius: 6px;
+            padding: 0.3rem 0.8rem;
+            font-family: var(--mono);
+            font-size: 0.72rem;
+            color: var(--danger);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .retry-btn:hover {
+            background: rgba(255,77,109,0.12);
+            border-color: var(--danger);
+        }
+
+        .retry-all-bar {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 0.75rem;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: #fff;
+            width: auto;
+            padding: 0.65rem 1.5rem;
+            font-size: 0.85rem;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: #ff6b84;
+            box-shadow: 0 0 20px rgba(255,77,109,0.35);
+            transform: translateY(-1px);
+        }
+
         /* ── Footer ── */
         footer {
             position: relative;
@@ -1325,6 +1373,7 @@
     const errorSection   = document.getElementById('errorSection');
 
     let selectedFile = null;
+    let failedRows   = [];
 
     /* ── Drop zone ── */
     dropZone.addEventListener('click', () => fileInput.click());
@@ -1573,16 +1622,38 @@
         reviewNotice.style.display = 'flex';
 
         /* Errors */
+        errorSection.innerHTML = '';
         if (result.errors && result.errors.length > 0) {
-            errorSection.innerHTML = `
-                <div class="section-title" style="margin-top:1.5rem">Errors</div>
-                ${result.errors.map(e => `
+            failedRows = result.errors.filter(e => e.url);
+
+            const cards = result.errors.map((e, i) => {
+                const retryIdx = failedRows.indexOf(e);
+                return `
                     <div class="error-card">
                         <div class="err-name">${e.client_name || 'Unknown'}</div>
-                        <div class="err-msg">${e.error}</div>
-                    </div>
-                `).join('')}
+                        <div class="err-msg">${escHtml(e.error)}</div>
+                        ${e.url ? `<div class="err-url">${escHtml(e.url)}</div>
+                        <button class="retry-btn" data-ridx="${retryIdx}">↻ Retry</button>` : ''}
+                    </div>`;
+            }).join('');
+
+            const retryAllBar = failedRows.length > 1 ? `
+                <div class="retry-all-bar">
+                    <button class="btn btn-danger" id="retryAllBtn">↻ Retry All ${failedRows.length} Failed</button>
+                </div>` : '';
+
+            errorSection.innerHTML = `
+                <div class="section-title" style="margin-top:1.5rem">Errors</div>
+                ${cards}
+                ${retryAllBar}
             `;
+
+            errorSection.querySelectorAll('.retry-btn[data-ridx]').forEach(btn => {
+                const idx = parseInt(btn.dataset.ridx, 10);
+                btn.addEventListener('click', () => retryRows([failedRows[idx]]));
+            });
+            const retryAllBtn = document.getElementById('retryAllBtn');
+            if (retryAllBtn) retryAllBtn.addEventListener('click', () => retryRows(failedRows));
         }
 
         resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1601,7 +1672,80 @@
     }
 
     function escHtml(str) {
-        return str.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    /* ── Retry helpers ── */
+    function buildRetryCSV(rows) {
+        const headers = [
+            'Credit File Link', 'Client 1 Title', 'Client 1 First Name',
+            'Client 1 Surname', 'Client 1 DOB', 'Client 1 E-mail Address',
+            'Client 1 Phone Number', 'Client 1 Residential Address Line 1',
+            'Client 1 Residential Address Line 2', 'Client 1 Residential Address Line 3',
+            'Client 1 Residential Postcode', 'Defendant',
+        ];
+        const lines = [headers.map(h => `"${h}"`).join(',')];
+        for (const row of rows) {
+            const d = row.csv_data || {};
+            const cells = [
+                row.url,
+                d.title        || '',
+                d.first_name   || '',
+                d.surname      || '',
+                d.date_of_birth|| '',
+                d.email        || '',
+                d.phone        || '',
+                d.residence_1  || '',
+                d.residence_2  || '',
+                d.residence_3  || '',
+                d.postal_code  || '',
+                d.defendant    || '',
+            ];
+            lines.push(cells.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+        }
+        return lines.join('\r\n');
+    }
+
+    async function retryRows(rows) {
+        if (!rows || rows.length === 0) return;
+        const csvBlob = new Blob([buildRetryCSV(rows)], { type: 'text/csv' });
+        const formData = new FormData();
+        formData.append('file', csvBlob, 'retry.csv');
+
+        loadingOverlay.classList.add('show');
+        setProgress(15, 'Retrying failed rows…');
+        submitBtn.disabled = true;
+
+        try {
+            const companyName = modalCompanyName.value.trim() || 'Tracker';
+            const resp = await fetch(`/batch-process-csv?company_name=${encodeURIComponent(companyName)}`, {
+                method: 'POST',
+                body: formData,
+            });
+            setProgress(80, 'Uploading to Google Drive…');
+            if (!resp.ok) {
+                const err = await resp.json();
+                throw new Error(err.detail || 'Server error');
+            }
+            const result = await resp.json();
+            setProgress(100, 'Done!');
+            setTimeout(() => {
+                loadingOverlay.classList.remove('show');
+                setProgress(0, '');
+                renderResults(result);
+            }, 800);
+        } catch (err) {
+            loadingOverlay.classList.remove('show');
+            setProgress(0, '');
+            alert(`Retry failed: ${err.message}`);
+        } finally {
+            submitBtn.disabled = false;
+        }
     }
 </script>
 

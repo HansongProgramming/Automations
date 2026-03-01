@@ -269,11 +269,13 @@ class GoogleSheetsTracker:
     def _color_case_status_cells(self, rows: list, updated_range: str, sheet_name: str):
         """Apply background colour to Case Status cells after a successful append."""
         import re
-        match = re.search(r'!A(\d+):', updated_range)
+        # Match any column letter(s) before the row number (not just 'A')
+        match = re.search(r'!([A-Z]+)(\d+):', updated_range)
         if not match:
+            logger.warning(f"Could not parse updatedRange for colouring: {updated_range!r}")
             return
 
-        start_row = int(match.group(1)) - 1  # Sheets API uses 0-based row indices
+        start_row = int(match.group(2)) - 1  # Sheets API uses 0-based row indices
         col_idx   = self.HEADERS.index('Case Status')
         sheet_id  = self._get_sheet_id(sheet_name)
         requests  = []
@@ -323,10 +325,9 @@ class GoogleSheetsTracker:
         csv_row_data: Optional[Dict[str, Any]] = None,
         sheet_name: str = "Tracker"
     ):
-        col = self._col_letter(len(self.HEADERS))
         row = self._build_row(client_name, credit_url, analysis_result, drive_result, csv_row_data)
         resp = req_lib.post(
-            f"{SHEETS_API}/{self.spreadsheet_id}/values/{sheet_name}!A:{col}:append",
+            f"{SHEETS_API}/{self.spreadsheet_id}/values/{sheet_name}!A1:append",
             headers=self._headers(),
             params={'valueInputOption': 'USER_ENTERED', 'insertDataOption': 'INSERT_ROWS'},
             json={'values': [row]}
@@ -355,9 +356,8 @@ class GoogleSheetsTracker:
         if not rows:
             return
 
-        col = self._col_letter(len(self.HEADERS))
         resp = req_lib.post(
-            f"{SHEETS_API}/{self.spreadsheet_id}/values/{sheet_name}!A:{col}:append",
+            f"{SHEETS_API}/{self.spreadsheet_id}/values/{sheet_name}!A1:append",
             headers=self._headers(),
             params={'valueInputOption': 'USER_ENTERED', 'insertDataOption': 'INSERT_ROWS'},
             json={'values': rows}

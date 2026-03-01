@@ -1069,9 +1069,17 @@ async def batch_process_csv(
         for html_result in html_results:
             if 'error' in html_result:
                 client_name = html_result.get('client_name', 'Unknown')
+                url_fail    = html_result.get('url', '')
                 error_msg   = html_result['error']
-                errors.append({'client_name': client_name, 'error': error_msg})
-                log_failure(client_name, error_msg, url=html_result.get('url', ''))
+                errors.append({'client_name': client_name, 'error': error_msg, 'url': url_fail, 'csv_data': csv_row_by_url.get(url_fail, {})})
+                log_failure(client_name, error_msg, url=url_fail)
+                tracking_records.append({
+                    'client_name':     client_name,
+                    'credit_url':      url_fail,
+                    'analysis_result': {'error': error_msg},
+                    'drive_result':    {'success': False, 'error': error_msg},
+                    'csv_row_data':    csv_row_by_url.get(url_fail, {}),
+                })
                 continue
 
             client_name = html_result.get('client_name', 'Unknown')
@@ -1223,16 +1231,24 @@ async def batch_process_csv(
 
             except Exception as e:
                 logger.error(f"Processing failed for {client_name}: {e}", exc_info=True)
-                errors.append({'client_name': client_name, 'error': str(e)})
-                log_failure(client_name, str(e), url=url)
+                error_str = str(e)
+                errors.append({'client_name': client_name, 'error': error_str, 'url': url, 'csv_data': csv_row_by_url.get(url, {})})
+                log_failure(client_name, error_str, url=url)
                 client_summary[client_name] = {
                     'client_name':        client_name,
                     'client_folder_link': '',
                     'pdf_link':           '',
                     'html_link':          '',
                     'loc_link':           '',
-                    'error':              str(e),
+                    'error':              error_str,
                 }
+                tracking_records.append({
+                    'client_name':     client_name,
+                    'credit_url':      url,
+                    'analysis_result': {'error': error_str},
+                    'drive_result':    {'success': False, 'error': error_str},
+                    'csv_row_data':    csv_row_by_url.get(url, {}),
+                })
 
         # ── Step 5: Write to Google Sheets ─────────────────────────
         if tracking_records:

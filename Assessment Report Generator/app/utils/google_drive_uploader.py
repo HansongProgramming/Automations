@@ -99,8 +99,9 @@ class GoogleDriveUploader:
         if cache_key in self._folder_cache:
             return self._folder_cache[cache_key]
 
+        escaped_name = name.replace("'", "\\'")
         query = (
-            f"name='{name}' "
+            f"name='{escaped_name}' "
             f"and '{parent_id}' in parents "
             f"and mimeType='application/vnd.google-apps.folder' "
             f"and trashed=false"
