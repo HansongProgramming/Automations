@@ -1,16 +1,19 @@
-FROM mcr.microsoft.com/playwright/python:v1.40.0-jammy
+FROM python:3.11-slim-bookworm
 
 WORKDIR /app
 
-# Install system Chromium — reliable fallback if Playwright's bundled browser is missing
+# Install base utilities needed before playwright deps
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends chromium-browser && \
+    apt-get install -y --no-install-recommends curl && \
     rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install Python dependencies
+# Copy requirements and install Python dependencies (includes playwright==1.40.0)
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Install Playwright's Chromium + all required system libraries in one step
 RUN playwright install chromium --with-deps
+
 # Copy application code
 COPY app ./app
 
